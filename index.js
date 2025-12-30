@@ -17,6 +17,7 @@ const {
 } = require("discord.js");
 const express = require("express");
 
+const ROLE_WHITELIST = ["1187464674321633320"];
 // ------------------------
 // EXPRESS SETUP
 // ------------------------
