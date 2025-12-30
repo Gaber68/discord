@@ -1,6 +1,7 @@
 // ------------------------
 // IMPORTS
 // ------------------------
+const fs = require("fs"); // <- added
 const fetch = (...args) =>
   import("node-fetch").then(({ default: fetch }) => fetch(...args));
 
@@ -49,16 +50,12 @@ client.once("ready", () => {
   console.log(`Logged in as ${client.user.tag}`);
 });
 
-// ------------------------
-// WHITELIST
-// ------------------------
-const ROLE_WHITELIST = ["1187464674321633320", "1445466397319630981"];
-let guildLogChannels = {};
-
-// Ob zagonu bota naloži shranjene log kanale
+// Example: check if logChannels.json exists
 if (fs.existsSync("./logChannels.json")) {
-  guildLogChannels = JSON.parse(fs.readFileSync("./logChannels.json"));
+  const logChannels = JSON.parse(fs.readFileSync("./logChannels.json", "utf-8"));
+  console.log("Log channels loaded:", logChannels);
 }
+
 
 // ------------------------
 // HELPERS
