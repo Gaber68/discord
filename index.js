@@ -18,6 +18,7 @@ const {
 const express = require("express");
 
 const ROLE_WHITELIST = ["1187464674321633320"];
+let guildLogChannels = {};
 // ------------------------
 // EXPRESS SETUP
 // ------------------------
@@ -1296,6 +1297,68 @@ Izvedene komande: \`${totalCommandsExecuted}\`
       );
     }
   }
+
+  else if (command === "admin") {
+  if (!message.guild) return;
+
+  // Dovoljenje: owner ali whitelist
+  if (
+    message.author.id !== message.guild.ownerId &&
+    !ROLE_WHITELIST.includes(message.author.id)
+  ) {
+    return sendEmbed(
+      message.channel,
+      "Dostop zavrnjen",
+      "Ta ukaz je na voljo samo adminom.",
+      "#FF5555",
+    );
+  }
+
+  const embed = new EmbedBuilder()
+    .setTitle("🛡️ Admin Komande")
+    .setDescription("Seznam vseh admin/moderation ukazov:")
+    .addFields(
+      {
+        name: "👢 Kick",
+        value: "`!kick @user`\nOdstrani uporabnika iz strežnika.",
+      },
+      {
+        name: "⛔ Ban",
+        value: "`!ban @user`\nTrajno bana uporabnika.",
+      },
+      {
+        name: "⏳ Timeout",
+        value: "`!timeout @user <čas>`\nPrimeri: `10m`, `1h`, `1d`, `1M`",
+      },
+      {
+        name: "⏱️ Untimeout",
+        value: "`!untimeout @user`\nOdstrani timeout uporabniku.",
+      },
+      {
+        name: "⚠️ Kick All",
+        value: "`!kick all`\nKicka vse uporabnike (zahteva potrditev).",
+      },
+      {
+        name: "🚫 Ban All",
+        value: "`!ban all`\nBana vse uporabnike (zahteva potrditev).",
+      },
+    )
+    .setColor("#ED4245")
+    .setFooter({ text: `Opened by ${message.author.tag}` })
+    .setTimestamp();
+
+  await message.channel.send({ embeds: [embed] });
+
+  // 🔹 LOG
+  await logAction(
+    message.guild,
+    "🛡️ Admin help odprt",
+    `Uporabnik **${message.author.tag}** je odprl \`!admin\` pomoč.`,
+    "#ED4245",
+  );
+
+  return;
+}
 });
 
 const PORT = process.env.PORT || 3000;
