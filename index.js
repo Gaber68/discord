@@ -16,7 +16,6 @@ const {
 } = require("discord.js");
 const fs = require("fs");
 const express = require("express");
-const keep_alive = require("./keep_alive.js");
 
 // ------------------------
 // EXPRESS SETUP
@@ -38,6 +37,12 @@ const client = new Client({
 });
 
 client.login(process.env.DISCORD_TOKEN);
+
+app.get("/", (req, res) => res.send("Bot is running!"));
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
 
 // ------------------------
 // WHITELIST
