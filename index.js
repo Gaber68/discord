@@ -14,13 +14,18 @@ const {
   ButtonBuilder,
   ButtonStyle,
 } = require("discord.js");
-const fs = require("fs");
 const express = require("express");
 
 // ------------------------
 // EXPRESS SETUP
 // ------------------------
 const app = express();
+
+app.get("/", (req, res) => res.send("Bot is running!"));
+
+// Use a single PORT declaration
+const port = process.env.PORT || 3000;
+app.listen(port, () => console.log(`Server running on port ${port}`));
 
 // ------------------------
 // DISCORD BOT SETUP
@@ -36,13 +41,13 @@ const client = new Client({
   partials: ["CHANNEL"],
 });
 
+// Log in with token from environment variable
 client.login(process.env.DISCORD_TOKEN);
 
-app.get("/", (req, res) => res.send("Bot is running!"));
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
+// Optional: simple ready log
+client.once("ready", () => {
+  console.log(`Logged in as ${client.user.tag}`);
+});
 
 // ------------------------
 // WHITELIST
