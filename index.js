@@ -46,7 +46,7 @@ const client = new Client({
 client.login(process.env.DISCORD_TOKEN);
 
 // Optional: simple ready log
-client.once("ready", () => {
+client.once("clientReady", () => {
   console.log(`Logged in as ${client.user.tag}`);
 });
 
