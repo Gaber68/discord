@@ -54,8 +54,10 @@ client.once("clientReady", () => {
 
 // Example: check if logChannels.json exists
 if (fs.existsSync("./logChannels.json")) {
-  const logChannels = JSON.parse(fs.readFileSync("./logChannels.json", "utf-8"));
-  console.log("Log channels loaded:", logChannels);
+  guildLogChannels = JSON.parse(
+    fs.readFileSync("./logChannels.json", "utf-8")
+  );
+  console.log("Log channels loaded:", guildLogChannels);
 }
 
 
