@@ -1494,14 +1494,16 @@ if (command === "unwarn") {
 if (command === "server" && args[0]?.toLowerCase() === "rename") {
 
   // White list check
-  if (!WHITELIST.includes(message.author.id)) {
-    return sendEmbed(
-      message.channel,
-      "❌ Dostop zavrnjen",
-      "Nimaš dovoljenja za uporabo te komande.",
-      "#FF5555"
-    );
-  }
+  if (!message.member.roles.cache.some(role =>
+  ROLE_WHITELIST.includes(role.id)
+)) {
+  return sendEmbed(
+    message.channel,
+    "❌ Dostop zavrnjen",
+    "Nimaš dovoljene role za uporabo te komande.",
+    "#FF5555"
+  );
+}
 
   // Help
   if (args[1]?.toLowerCase() === "help") {
