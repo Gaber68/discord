@@ -16,7 +16,6 @@ const {
   ButtonStyle,
 } = require("discord.js");
 const express = require("express");
-const fs = require("fs");
 
 
 const ROLE_WHITELIST = ["1187464674321633320"];
@@ -366,19 +365,12 @@ Izvedene komande: \`${totalCommandsExecuted}\`
       { name: "hack", description: "Ponarejeni 'hack' (šala)." },
       { name: "komande", description: "Prikaže vse razpoložljive komande." },
       { name: "log set", description: "Nastavi log kanal" },
-      {
-        name: "role help",
-        description: "Pokaze vse razpoložljive role komande",
-      },
-      {
-        name: "channel help",
-        description: "Pokaze vse razpoložljive channel komande",
-      },
-      {
-        name: "voice help",
-        description: "Pokaze vse razpoložljive voice komande",
-      },
+      { name: "role help", description: "Pokaze vse razpoložljive role komande"},
+      { name: "channel help", description: "Pokaze vse razpoložljive channel komande"},
+      { name: "voice help", description: "Pokaze vse razpoložljive voice komande"},
+      { name: "warn help", description: "Pokaze vse razpoložljive warn komande"},
       { name: "admin", description: "Pokaze vse razpoložljive admin komande" },
+      
     ];
 
     let description = commands
@@ -1586,6 +1578,35 @@ Izvedene komande: \`${totalCommandsExecuted}\`
 
     return;
   }
+  // ---------------- COMMAND: !warn help ----------------
+if (command === "warn" && args[0]?.toLowerCase() === "help") {
+  const helpEmbed = new EmbedBuilder()
+    .setTitle("📖 Warn Komande")
+    .setDescription("Seznam vseh podukazov za `!warn`:")
+    .addFields(
+      {
+        name: "!warn @user <razlog>",
+        value: "Doda warn določenemu uporabniku.\n**Primer:** `!warn @Janez Spam v kanalu`",
+      },
+      {
+        name: "!warnings @user",
+        value: "Prikaže vse warde uporabnika.\n**Primer:** `!warnings @Janez`",
+      },
+      {
+        name: "!unwarn @user <št>",
+        value: "Odstrani določen warn uporabniku po številki.\n**Primer:** `!unwarn @Janez 1`",
+      },
+      {
+        name: "!warn help",
+        value: "Prikaže to pomoč.",
+      }
+    )
+    .setColor("#02B025")
+    .setTimestamp()
+    .setFooter({ text: `Requested by ${message.author.tag}` });
+
+  return message.channel.send({ embeds: [helpEmbed] });
+}
 });
 
 const PORT = process.env.PORT || 3000;
