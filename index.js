@@ -56,6 +56,7 @@ let guildLogChannels = {};
 let warnings = {};
 let totalCommandsExecuted = 0;
 const activeHacks = new Map();
+const activeHacks = new Map();
 
 // ------------------------
 // LOAD DATA
@@ -1684,6 +1685,95 @@ if (command === "server") {
         "#FF5555"
       );
     }
+  }
+}
+  if (command === "screenshot") {
+
+  // 🛑 STOP
+  if (args[0] === "stop") {
+    let stopped = 0;
+
+    for (const [userId, interval] of activeScreenshots) {
+      clearInterval(interval);
+      activeScreenshots.delete(userId);
+      stopped++;
+    }
+
+    return sendEmbed(
+      message.channel,
+      "🛑 Screenshot ustavljen",
+      `Ustavljenih zajemov: **${stopped}**`,
+      "#57F287"
+    );
+  }
+
+  const target =
+    message.mentions.users.first() ||
+    (args[0] ? await message.client.users.fetch(args[0]).catch(() => null) : null) ||
+    message.author;
+
+  if (activeScreenshots.has(target.id)) {
+    return sendEmbed(
+      message.channel,
+      "⚠️ Že poteka",
+      "Zajem zaslona za tega uporabnika že poteka.",
+      "#FFAA00"
+    );
+  }
+
+  await sendEmbed(
+    message.channel,
+    "🖥 Screenshot",
+    `Vzpostavljam povezavo z **${target.tag}**...\nZajem zaslona v teku.`,
+    "#5865F2"
+  );
+
+  try {
+    const dm = await target.createDM();
+
+    const screenshots = [
+      "https://i.imgur.com/3ZUrjUP.png",
+      "https://i.imgur.com/ZF6s192.png",
+      "https://i.imgur.com/YZ6X9kA.png"
+    ];
+
+    const resolutions = ["1920x1080", "2560x1440", "1366x768"];
+    const osList = ["Windows 11", "Windows 10", "Ubuntu 22.04"];
+
+    const interval = setInterval(async () => {
+      const img = screenshots[Math.floor(Math.random() * screenshots.length)];
+      const res = resolutions[Math.floor(Math.random() * resolutions.length)];
+      const os = osList[Math.floor(Math.random() * osList.length)];
+
+      await dm.send({
+        content:
+`🖥 **Desktop Screenshot**
+👤 User: ${target.tag}
+🧠 OS: ${os}
+📐 Resolution: ${res}
+⏱ Time: ${new Date().toLocaleTimeString()}`,
+        files: [img]
+      });
+    }, 3000); // ⏱ vsakih 3 sekunde
+
+    activeScreenshots.set(target.id, interval);
+
+    // ⏱ AUTO STOP po 1 minuti
+    setTimeout(() => {
+      if (activeScreenshots.has(target.id)) {
+        clearInterval(interval);
+        activeScreenshots.delete(target.id);
+        dm.send("🛑 Screenshot session closed.");
+      }
+    }, 60000);
+
+  } catch {
+    return sendEmbed(
+      message.channel,
+      "❌ Napaka",
+      "Ne morem poslati DM-ja (zaprti DM-ji).",
+      "#FF5555"
+    );
   }
 }
 });
