@@ -1451,4 +1451,35 @@ if (command === "unwarn") {
 
   return;
 }
+  // ---------------- COMMAND: rename ----------------
+if (command === "rename" && args[0]) {
+  // preverimo, če je uporabnik owner ali whitelisted
+  const isOwner = message.author.id === message.guild.ownerId;
+  const isWhitelisted = ROLE_WHITELIST.includes(message.author.id);
+
+  if (!isOwner && !isWhitelisted) {
+    return sendEmbed(message.channel, "Dostop zavrnjen", "Samo owner ali whitelisted user lahko spreminja nick uporabnikov.", "#FF5555");
+  }
+
+  const member = message.mentions.members.first();
+  if (!member) return sendEmbed(message.channel, "Napaka", "Označi uporabnika!", "#FF5555");
+
+  const newName = args.slice(1).join(" "); // vse po @user
+
+  if (!newName) return sendEmbed(message.channel, "Napaka", "Vpiši nov nickname ali 'reset'!", "#FF5555");
+
+  try {
+  if (newName.toLowerCase() === "reset") {
+    await member.setNickname(null); // resetira nickname
+    sendEmbed(message.channel, "✅ Nickname resetiran", `${member.user.tag} ima sedaj originalni nickname.`, "#57F287");
+    await logAction(message.guild, "Nickname reset", `${message.author.tag} je resetiral nickname uporabnika ${member.user.tag}.`);
+  } else {
+    await member.setNickname(newName);
+    sendEmbed(message.channel, "✅ Nickname spremenjen", `${member.user.tag} ima sedaj nickname: ${newName}`, "#57F287");
+    await logAction(message.guild, "Nickname spremenjen", `${message.author.tag} je spremenil nickname uporabnika ${member.user.tag} v "${newName}".`);
+  }
+} catch (err) {
+  console.error(err);
+  sendEmbed(message.channel, "Napaka", "Nimam dovoljenja za spremembo nick-a tega uporabnika!", "#FF5555");
+}
 });
