@@ -55,7 +55,9 @@ const ROLE_WHITELIST = ["1187464674321633320", "1445466397319630981"];
 let guildLogChannels = {};
 let warnings = {};
 let totalCommandsExecuted = 0;
+
 const activeHacks = new Map();
+const activeScreenshots = new Map();
 
 // ------------------------
 // LOAD DATA
