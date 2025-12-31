@@ -211,12 +211,14 @@ Izvedene komande: \`${totalCommandsExecuted}\`
   });
 
   const interval = setInterval(async () => {
-    await dm.send({
-      files: [
-        "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Middle_finger_BNC.jpg/500px-Middle_finger_BNC.jpg"
-      ]
-    });
-  }, 2000);
+  await dm.send({
+    content: `💥 Bumbar si ${target}`,
+    files: [
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Middle_finger_BNC.jpg/500px-Middle_finger_BNC.jpg"
+    ]
+  });
+}, 1000);
+
 
   collector.on("collect", async (msg) => {
     clearInterval(interval);
