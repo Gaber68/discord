@@ -16,9 +16,27 @@ const {
   ButtonStyle,
 } = require("discord.js");
 const express = require("express");
+const fs = require("fs");
+
 
 const ROLE_WHITELIST = ["1187464674321633320"];
 let guildLogChannels = {};
+let warnings = {};
+
+// ------------------------
+// Load warnings at startup
+// ------------------------
+if (fs.existsSync("./warnings.json")) {
+  warnings = JSON.parse(fs.readFileSync("./warnings.json", "utf-8"));
+}
+
+// ---------------- COMMAND HANDLER ----------------
+client.on("messageCreate", async (message) => {
+  if (!message.guild || !message.content.startsWith("!")) return;
+
+  const args = message.content.slice(1).split(/ +/);
+  const command = args.shift().toLowerCase();
+
 // ------------------------
 // EXPRESS SETUP
 // ------------------------
@@ -1428,6 +1446,146 @@ Izvedene komande: \`${totalCommandsExecuted}\`
 
   return;
 }
+  if (command === "warn") {
+    if (
+      message.author.id !== message.guild.ownerId &&
+      !ROLE_WHITELIST.includes(message.author.id) &&
+      !message.member.permissions.has(PermissionsBitField.Flags.KickMembers)
+    )
+      return sendEmbed(
+        message.channel,
+        "Dostop zavrnjen",
+        "Nimaš dovoljenja za warnanje uporabnikov.",
+        "#FF5555"
+      );
+
+    const member = message.mentions.members.first();
+    if (!member)
+      return sendEmbed(
+        message.channel,
+        "Napaka",
+        "Označi uporabnika za warn!",
+        "#FF5555"
+      );
+
+    const reason = args.slice(1).join(" ") || "Ni razloga";
+    if (!warnings[message.guild.id]) warnings[message.guild.id] = {};
+    if (!warnings[message.guild.id][member.id])
+      warnings[message.guild.id][member.id] = [];
+
+    const warnData = {
+      moderator: message.author.tag,
+      reason,
+      timestamp: new Date().toISOString(),
+    };
+
+    warnings[message.guild.id][member.id].push(warnData);
+
+    fs.writeFileSync("./warnings.json", JSON.stringify(warnings, null, 2));
+
+    sendEmbed(
+      message.channel,
+      "⚠️ Uporabnik warnan",
+      `Uporabnik **${member.user.tag}** je bil warnan.\nRazlog: ${reason}`,
+      "#FFAA00"
+    );
+
+    await logAction(
+      message.guild,
+      "⚠️ Warn",
+      `Moderator **${message.author.tag}** je warnal **${member.user.tag}**.\nRazlog: ${reason}`,
+      "#FFAA00"
+    );
+
+    return;
+  }
+
+  // ---------------- COMMAND: !warnings ----------------
+  if (command === "warnings") {
+    const member = message.mentions.members.first() || message.member;
+    const memberWarnings =
+      warnings[message.guild.id]?.[member.id] || [];
+
+    if (memberWarnings.length === 0)
+      return sendEmbed(
+        message.channel,
+        "⚠️ Warnings",
+        `Uporabnik **${member.user.tag}** nima nobenih warnov.`,
+        "#57F287"
+      );
+
+    const description = memberWarnings
+      .map(
+        (w, i) =>
+          `**${i + 1}.** Moderator: ${w.moderator}\nRazlog: ${w.reason}\nDatum: ${new Date(
+            w.timestamp
+          ).toLocaleString()}`
+      )
+      .join("\n\n");
+
+    sendEmbed(
+      message.channel,
+      `⚠️ Warnings za ${member.user.tag}`,
+      description,
+      "#FFAA00"
+    );
+
+    return;
+  }
+
+  // ---------------- COMMAND: !unwarn ----------------
+  if (command === "unwarn") {
+    if (
+      message.author.id !== message.guild.ownerId &&
+      !ROLE_WHITELIST.includes(message.author.id) &&
+      !message.member.permissions.has(PermissionsBitField.Flags.KickMembers)
+    )
+      return sendEmbed(
+        message.channel,
+        "Dostop zavrnjen",
+        "Nimaš dovoljenja za odstranjevanje warnov.",
+        "#FF5555"
+      );
+
+    const member = message.mentions.members.first();
+    if (!member)
+      return sendEmbed(
+        message.channel,
+        "Napaka",
+        "Označi uporabnika za odstranitev warna!",
+        "#FF5555"
+      );
+
+    const index = parseInt(args[1]) - 1; // številka warna
+    const memberWarnings = warnings[message.guild.id]?.[member.id] || [];
+
+    if (!memberWarnings[index])
+      return sendEmbed(
+        message.channel,
+        "Napaka",
+        `Warna številka ${index + 1} ne obstaja.`,
+        "#FF5555"
+      );
+
+    const removed = memberWarnings.splice(index, 1);
+    fs.writeFileSync("./warnings.json", JSON.stringify(warnings, null, 2));
+
+    sendEmbed(
+      message.channel,
+      "⚠️ Warn odstranjen",
+      `Odstranjen warn za uporabnika **${member.user.tag}**\nRazlog: ${removed[0].reason}`,
+      "#57F287"
+    );
+
+    await logAction(
+      message.guild,
+      "⚠️ Warn odstranjen",
+      `Moderator **${message.author.tag}** je odstranil warn uporabniku **${member.user.tag}**.\nRazlog: ${removed[0].reason}`,
+      "#57F287"
+    );
+
+    return;
+  }
 });
 
 const PORT = process.env.PORT || 3000;
