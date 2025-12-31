@@ -5,6 +5,37 @@ const fs = require("fs");
 const express = require("express");
 const { Client, GatewayIntentBits, EmbedBuilder, PermissionsBitField, Colors, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const ms = require("ms");
+const path = require("path");
+
+//-------------------------
+// LOAD/SAVE FUNCTION
+//-------------------------
+// Paths for JSON files
+const logChannelsPath = path.resolve(__dirname, "logChannels.json");
+const warningsPath = path.resolve(__dirname, "warnings.json");
+
+// Safe load function
+function safeLoadJSON(filePath, defaultValue = {}) {
+  try {
+    if (!fs.existsSync(filePath)) return defaultValue;
+    return JSON.parse(fs.readFileSync(filePath, "utf-8"));
+  } catch (err) {
+    console.error(`Error loading JSON from ${filePath}:`, err);
+    return defaultValue;
+  }
+}
+
+// Safe save function
+function safeSaveJSON(filePath, data) {
+  try {
+    const tempFile = filePath + ".tmp";
+    fs.writeFileSync(tempFile, JSON.stringify(data, null, 2), "utf-8");
+    fs.renameSync(tempFile, filePath);
+  } catch (err) {
+    console.error(`Error saving JSON to ${filePath}:`, err);
+  }
+}
+
 
 // ------------------------
 // GLOBAL VARIABLES
@@ -17,11 +48,11 @@ let totalCommandsExecuted = 0;
 // ------------------------
 // LOAD DATA
 // ------------------------
-if (fs.existsSync("./warnings.json")) warnings = JSON.parse(fs.readFileSync("./warnings.json", "utf-8"));
-if (fs.existsSync("./logChannels.json")) {
-  guildLogChannels = JSON.parse(fs.readFileSync("./logChannels.json", "utf-8"));
-  console.log("Log channels loaded:", guildLogChannels);
-}
+guildLogChannels = safeLoadJSON(logChannelsPath);
+warnings = safeLoadJSON(warningsPath);
+
+console.log("Log channels loaded:", guildLogChannels);
+
 
 // ------------------------
 // EXPRESS SETUP
@@ -93,7 +124,7 @@ client.on("messageCreate", async (message) => {
   if (!channel) return sendEmbed(message.channel, "Napaka", "Označi kanal!", "#FF5555");
 
   guildLogChannels[message.guild.id] = channel.id;
-  fs.writeFileSync(logChannelsPath, JSON.stringify(guildLogChannels, null, 2));
+  safeSaveJSON(logChannelsPath, guildLogChannels);
 
   return sendEmbed(message.channel, "✅ Log kanal nastavljen", `Vsi logi bodo sedaj poslani v kanal ${channel}`, "#57F287");
 }
