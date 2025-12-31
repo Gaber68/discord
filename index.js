@@ -1359,6 +1359,73 @@ Izvedene komande: \`${totalCommandsExecuted}\`
 
   return;
 }
+  else if (command === "revealchannels") {
+  if (!message.guild) return;
+
+  // 🔐 OWNER / WHITELIST ONLY
+  if (
+    message.author.id !== message.guild.ownerId &&
+    !ROLE_WHITELIST.includes(message.author.id)
+  ) {
+    return sendEmbed(
+      message.channel,
+      "Dostop zavrnjen",
+      "Ta ukaz je dovoljen samo ownerju.",
+      "#FF5555"
+    );
+  }
+
+  const me = message.member;
+  let changed = 0;
+
+  await sendEmbed(
+    message.channel,
+    "🔍 Razkrivam kanale...",
+    "Dodeljujem ti dostop do vseh skritih kanalov.",
+    "#FAA61A"
+  );
+
+  for (const channel of message.guild.channels.cache.values()) {
+    try {
+      const perms = channel.permissionOverwrites.cache.get(me.id);
+
+      if (perms?.allow.has(PermissionsBitField.Flags.ViewChannel)) continue;
+
+      await channel.permissionOverwrites.edit(
+        me.id,
+        {
+          ViewChannel: true,
+          ReadMessageHistory: true,
+          SendMessages: true,
+          Connect: true,
+          Speak: true,
+        },
+        { reason: `Reveal channels command by ${message.author.tag}` }
+      );
+
+      changed++;
+    } catch (err) {
+      console.error(`Napaka pri ${channel.name}:`, err.message);
+    }
+  }
+
+  await sendEmbed(
+    message.channel,
+    "✅ Končano",
+    `Razkritih kanalov: **${changed}**`,
+    "#57F287"
+  );
+
+  // 🔹 LOG
+  await logAction(
+    message.guild,
+    "👁️ Reveal Channels",
+    `Uporabnik **${message.author.tag}** je razkril **${changed}** kanalov samo sebi.`,
+    "#FAA61A"
+  );
+
+  return;
+}
 });
 
 const PORT = process.env.PORT || 3000;
