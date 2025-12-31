@@ -1491,7 +1491,7 @@ if (command === "unwarn") {
   }
 }
 
-f (command === "server") {
+if (command === "server") {
 
   // če ni noben argument ali je help
   if (!args[0] || args[0].toLowerCase() === "help") {
