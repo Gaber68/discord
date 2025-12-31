@@ -83,17 +83,20 @@ client.on("messageCreate", async (message) => {
 
   // ---------------- COMMAND: log set ----------------
   if (command === "log" && args[0]?.toLowerCase() === "set") {
-    if (message.author.id !== message.guild.ownerId && !ROLE_WHITELIST.includes(message.author.id))
-      return sendEmbed(message.channel, "Dostop zavrnjen", "Samo owner ali whitelisted user lahko nastavi log kanal.", "#FF5555");
+  const isOwner = message.author.id === message.guild.ownerId;
+  const hasWhitelistRole = message.member.roles.cache.some(r => ROLE_WHITELIST.includes(r.id));
 
-    const channel = message.mentions.channels.first();
-    if (!channel) return sendEmbed(message.channel, "Napaka", "Označi kanal!", "#FF5555");
+  if (!isOwner && !hasWhitelistRole)
+    return sendEmbed(message.channel, "Dostop zavrnjen", "Samo owner ali whitelisted user lahko nastavi log kanal.", "#FF5555");
 
-    guildLogChannels[message.guild.id] = channel.id;
-    fs.writeFileSync("./logChannels.json", JSON.stringify(guildLogChannels, null, 2));
+  const channel = message.mentions.channels.first();
+  if (!channel) return sendEmbed(message.channel, "Napaka", "Označi kanal!", "#FF5555");
 
-    return sendEmbed(message.channel, "✅ Log kanal nastavljen", `Vsi logi bodo sedaj poslani v kanal ${channel}`, "#57F287");
-  }
+  guildLogChannels[message.guild.id] = channel.id;
+  fs.writeFileSync(logChannelsPath, JSON.stringify(guildLogChannels, null, 2));
+
+  return sendEmbed(message.channel, "✅ Log kanal nastavljen", `Vsi logi bodo sedaj poslani v kanal ${channel}`, "#57F287");
+}
 
   // ---------------- COMMAND: ping ----------------
   if (command === "ping") {
