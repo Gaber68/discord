@@ -1491,87 +1491,83 @@ if (command === "unwarn") {
   }
 }
 
-if (command === "server" && args[0]?.toLowerCase() === "rename") {
+f (command === "server") {
 
-  // White list check
-  if (!message.member.roles.cache.some(role =>
-  ROLE_WHITELIST.includes(role.id)
-)) {
-  return sendEmbed(
-    message.channel,
-    "❌ Dostop zavrnjen",
-    "Nimaš dovoljene role za uporabo te komande.",
-    "#FF5555"
-  );
-}
-
-  // Help
-  if (args[1]?.toLowerCase() === "help") {
+  // če ni noben argument ali je help
+  if (!args[0] || args[0].toLowerCase() === "help") {
     return sendEmbed(
       message.channel,
-      "Server Rename – Pomoč",
-      "**!server rename \"novo_ime\"** – spremeni ime strežnika\n" +
-      "**!server rename help** – pokaže to sporočilo",
+      "📘 Server komande",
+      "**!server help** – pokaže to pomoč\n" +
+      "**!server rename \"novo_ime\"** – spremeni ime strežnika",
       "#5865F2"
     );
   }
 
-  const newName = args.slice(1).join(" ").replace(/"/g, "");
-  if (!newName) {
+  // 🔒 whitelist CHECK ŠELE ZDAJ
+  const hasPermission = message.member.roles.cache.some(r =>
+    ROLE_WHITELIST.includes(r.id)
+  );
+
+  if (!hasPermission) {
     return sendEmbed(
       message.channel,
-      "Napaka",
-      "Vpiši novo ime strežnika!",
+      "❌ Dostop zavrnjen",
+      "Nimaš dovoljenja za uporabo te server komande.",
       "#FF5555"
     );
   }
 
-  // Permission check
-  if (!message.guild.members.me.permissions.has("ManageGuild")) {
-    return sendEmbed(
-      message.channel,
-      "Napaka",
-      "Bot nima pravice **Manage Server**!",
-      "#FF5555"
-    );
-  }
+  // =====================
+  // !server rename
+  // =====================
+  if (args[0].toLowerCase() === "rename") {
 
-  try {
-    const oldName = message.guild.name;
-    await message.guild.setName(newName);
-
-    sendEmbed(
-      message.channel,
-      "✅ Ime strežnika spremenjeno",
-      `**${oldName}** ➜ **${newName}**`,
-      "#57F287"
-    );
-
-    // Log
-    const logChannel = message.guild.channels.cache.get(LOG_CHANNEL_ID);
-    if (logChannel) {
-      logChannel.send({
-        embeds: [{
-          title: "📝 Server Rename Log",
-          color: 0x5865F2,
-          fields: [
-            { name: "Moderator", value: message.author.tag, inline: true },
-            { name: "Staro ime", value: oldName, inline: true },
-            { name: "Novo ime", value: newName, inline: true }
-          ],
-          timestamp: new Date()
-        }]
-      });
+    const newName = args.slice(1).join(" ").replace(/"/g, "");
+    if (!newName) {
+      return sendEmbed(
+        message.channel,
+        "Napaka",
+        "Vpiši novo ime strežnika!",
+        "#FF5555"
+      );
     }
 
-  } catch (err) {
-    console.error(err);
-    sendEmbed(
-      message.channel,
-      "Napaka",
-      "Nisem mogel spremeniti imena strežnika.",
-      "#FF5555"
-    );
+    if (!message.guild.members.me.permissions.has("ManageGuild")) {
+      return sendEmbed(
+        message.channel,
+        "Napaka",
+        "Bot nima pravice Manage Server!",
+        "#FF5555"
+      );
+    }
+
+    try {
+      const oldName = message.guild.name;
+      await message.guild.setName(newName);
+
+      sendEmbed(
+        message.channel,
+        "✅ Ime spremenjeno",
+        `**${oldName}** ➜ **${newName}**`,
+        "#57F287"
+      );
+
+      await logAction(
+        message.guild,
+        "Server Rename",
+        `${message.author.tag} je spremenil ime strežnika iz "${oldName}" v "${newName}"`
+      );
+
+    } catch (err) {
+      console.error(err);
+      sendEmbed(
+        message.channel,
+        "Napaka",
+        "Nisem mogel spremeniti imena strežnika.",
+        "#FF5555"
+      );
+    }
   }
 }
 });
