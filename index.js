@@ -55,6 +55,7 @@ const ROLE_WHITELIST = ["1187464674321633320", "1445466397319630981"];
 let guildLogChannels = {};
 let warnings = {};
 let totalCommandsExecuted = 0;
+const activeHacks = new Map();
 
 // ------------------------
 // LOAD DATA
@@ -187,57 +188,97 @@ Izvedene komande: \`${totalCommandsExecuted}\`
 
   // ---------------- COMMANDS: hack ----------------
   if (command === "hack") {
-    const wait = (ms) => new Promise((res) => setTimeout(res, ms));
-    let target = message.mentions.users.first() || (args[0] ? await message.client.users.fetch(args[0]).catch(() => null) : null) || message.author;
-    const isSelf = target.id === message.author.id;
 
-    const hackMessage = await message.channel.send({ embeds: [new EmbedBuilder().setTitle("💻 Hack").setDescription(`Inicializiram hack na **${target.tag}**...\n\nNapredek: **0%**`).setColor("#FFAA00")] });
-    for (const [perc, desc] of [[10, "Inicializiram hack..."], [50, "Heckam sistem..."], [100, "Zaključujem operacijo..."]]) {
-      await wait(1500);
-      await hackMessage.edit({ embeds: [new EmbedBuilder().setTitle("💻 Hack").setDescription(`Inicializiram hack na **${target.tag}**...\n\nNapredek: **${perc}%**`).setColor("#FFAA00")] });
+  // ---------- hack stop ----------
+  if (args[0] === "stop") {
+    if (activeHacks.size === 0) {
+      return sendEmbed(
+        message.channel,
+        "ℹ️ Hack stop",
+        "Trenutno ni aktivnih hack spamov.",
+        "#FAA61A"
+      );
     }
-    await wait(1000);
-    await hackMessage.edit({ embeds: [new EmbedBuilder().setTitle("✅ Hack končan").setDescription(`Hack na **${target.tag}** je bil uspešen.\nPreveri DM.`).setColor("#57F287")] });
 
-    await logAction(message.guild, "💻 Hack ukaz", isSelf ? `Uporabnik **${message.author.tag}** je hackal **samega sebe**.` : `Uporabnik **${message.author.tag}** je hackal **${target.tag}**.`, "#FFAA00");
-
-    try {
-  const dm = await target.createDM();
-
-  const filter = m => m.author.id === target.id;
-  const collector = dm.createMessageCollector({
-    filter,
-    time: 60000 // ⏱ 1 minuta max
-  });
-
-  const interval = setInterval(async () => {
-  await dm.send({
-    content: `💥 Bumbar si ${target}`,
-    files: [
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Middle_finger_BNC.jpg/500px-Middle_finger_BNC.jpg"
-    ]
-  });
-}, 1000);
-
-
-  collector.on("collect", async (msg) => {
-    clearInterval(interval);
-    collector.stop();
-
-    if (msg.content.toLowerCase().includes("gaber je kul")) {
-      await dm.send("😎 Sprejeto. Gaber je kul.");
-    } else {
-      await dm.send("😅 OK, ustavljam.");
+    for (const [userId, data] of activeHacks.entries()) {
+      clearInterval(data.interval);
+      data.collector.stop();
     }
-  });
 
-  collector.on("end", () => {
-    clearInterval(interval);
-  });
+    activeHacks.clear();
 
-} catch {
-  message.channel.send(
-    `❌ Ne morem poslati DM-ja uporabniku **${target.tag}** (zaprti DM-ji).`
+    return sendEmbed(
+      message.channel,
+      "🛑 Hack ustavljen",
+      "Vsi aktivni hack spam-i so bili ustavljeni.",
+      "#57F287"
+    );
+  }
+
+  // ---------- običajen hack ----------
+  const wait = (ms) => new Promise((res) => setTimeout(res, ms));
+  let target = message.mentions.users.first() || (args[0] ? await message.client.users.fetch(args[0]).catch(() => null) : null) || message.author;
+  const isSelf = target.id === message.author.id;
+
+  // Če je že aktiven → ustavi star hack
+  if (activeHacks.has(target.id)) {
+    const old = activeHacks.get(target.id);
+    clearInterval(old.interval);
+    old.collector.stop();
+    activeHacks.delete(target.id);
+  }
+
+  const hackMessage = await message.channel.send({ embeds: [new EmbedBuilder().setTitle("💻 Hack").setDescription(`Inicializiram hack na **${target.tag}**...\n\nNapredek: **0%**`).setColor("#FFAA00")] });
+  for (const [perc, desc] of [[10, "Inicializiram hack..."], [50, "Heckam sistem..."], [100, "Zaključujem operacijo..."]]) {
+    await wait(1500);
+    await hackMessage.edit({ embeds: [new EmbedBuilder().setTitle("💻 Hack").setDescription(`Inicializiram hack na **${target.tag}**...\n\nNapredek: **${perc}%**`).setColor("#FFAA00")] });
+  }
+  await wait(1000);
+  await hackMessage.edit({ embeds: [new EmbedBuilder().setTitle("✅ Hack končan").setDescription(`Hack na **${target.tag}** je bil uspešen.\nPreveri DM.`).setColor("#57F287")] });
+
+  await logAction(message.guild, "💻 Hack ukaz", isSelf ? `Uporabnik **${message.author.tag}** je hackal **samega sebe**.` : `Uporabnik **${message.author.tag}** je hackal **${target.tag}**.`, "#FFAA00");
+
+  try {
+    const dm = await target.createDM();
+
+    const filter = m => m.author.id === target.id;
+    const collector = dm.createMessageCollector({
+      filter,
+      time: 60000 // ⏱ 1 minuta max
+    });
+
+    const interval = setInterval(async () => {
+      await dm.send({
+        content: `💥 Bumbar si ${target}`,
+        files: [
+          "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Middle_finger_BNC.jpg/500px-Middle_finger_BNC.jpg"
+        ]
+      });
+    }, 1000); // pošilja vsako sekundo
+
+    // Shrani v globalni map
+    activeHacks.set(target.id, { interval, collector });
+
+    collector.on("collect", async (msg) => {
+      clearInterval(interval);
+      collector.stop();
+      activeHacks.delete(target.id);
+
+      if (msg.content.toLowerCase().includes("gaber je kul")) {
+        await dm.send("😎 Sprejeto. Gaber je kul.");
+      } else {
+        await dm.send("😅 OK, ustavljam.");
+      }
+    });
+
+    collector.on("end", () => {
+      clearInterval(interval);
+      activeHacks.delete(target.id);
+    });
+
+  } catch {
+    message.channel.send(
+      `❌ Ne morem poslati DM-ja uporabniku **${target.tag}** (zaprti DM-ji).`
     );
   }
 }
@@ -286,6 +327,31 @@ Izvedene komande: \`${totalCommandsExecuted}\`
     }
     return;
   }
+
+  if (command === "hack" && args[0] === "stop") {
+  if (activeHacks.size === 0) {
+    return sendEmbed(
+      message.channel,
+      "ℹ️ Hack stop",
+      "Trenutno ni aktivnih hack spamov.",
+      "#FAA61A"
+    );
+  }
+
+  for (const [userId, data] of activeHacks.entries()) {
+    clearInterval(data.interval);
+    data.collector.stop();
+  }
+
+  activeHacks.clear();
+
+  return sendEmbed(
+    message.channel,
+    "🛑 Hack ustavljen",
+    "Vsi aktivni hack spam-i so bili ustavljeni.",
+    "#57F287"
+  );
+}
 
   // --- zbriši koamnda --- LOGI DODANI
   else if (command === "zbrisi") {
