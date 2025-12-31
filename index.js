@@ -3,7 +3,18 @@
 // ------------------------
 const fs = require("fs");
 const express = require("express");
-const { Client, GatewayIntentBits, EmbedBuilder, PermissionsBitField, Colors, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
+const { 
+  Client, 
+  GatewayIntentBits, 
+  EmbedBuilder, 
+  PermissionsBitField, 
+  Colors,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  Partials
+} = require("discord.js");
+
 const ms = require("ms");
 const path = require("path");
 
@@ -72,9 +83,13 @@ const client = new Client({
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildVoiceStates,
+    GatewayIntentBits.DirectMessages // ⬅️ NUJNO ZA DM
   ],
-  partials: ["CHANNEL"],
+  partials: [
+    Partials.Channel // ⬅️ NE string, ampak Partials.Channel
+  ]
 });
+
 
 client.login(process.env.DISCORD_TOKEN);
 
