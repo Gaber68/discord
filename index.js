@@ -192,7 +192,7 @@ Izvedene komande: \`${totalCommandsExecuted}\`
   const filter = m => m.author.id === target.id;
   const collector = dm.createMessageCollector({
     filter,
-    time: 1 // ⏱ max 1 minuta
+    time: 60000 // ⏱ 1 minuta max
   });
 
   const interval = setInterval(async () => {
@@ -207,9 +207,8 @@ Izvedene komande: \`${totalCommandsExecuted}\`
     clearInterval(interval);
     collector.stop();
 
-    // 🎉 Easter egg
     if (msg.content.toLowerCase().includes("gaber je kul")) {
-      await dm.send("😎 Potrjeno. Gaber je res kul.");
+      await dm.send("😎 Sprejeto. Gaber je kul.");
     } else {
       await dm.send("😅 OK, ustavljam.");
     }
@@ -224,7 +223,7 @@ Izvedene komande: \`${totalCommandsExecuted}\`
     `❌ Ne morem poslati DM-ja uporabniku **${target.tag}** (zaprti DM-ji).`
   );
 }
-  }
+    
   // ---------------- COMMAND: komande ----------------
   if (command === "komande") {
     const commands = [
