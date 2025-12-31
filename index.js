@@ -1690,7 +1690,7 @@ if (command === "server") {
 }
   if (command === "screenshot") {
 
-  // 🛑 STOP
+  // 🛑 STOP ALL
   if (args[0] === "stop") {
     let stopped = 0;
 
@@ -1710,14 +1710,13 @@ if (command === "server") {
 
   const target =
     message.mentions.users.first() ||
-    (args[0] ? await message.client.users.fetch(args[0]).catch(() => null) : null) ||
     message.author;
 
   if (activeScreenshots.has(target.id)) {
     return sendEmbed(
       message.channel,
       "⚠️ Že poteka",
-      "Zajem zaslona za tega uporabnika že poteka.",
+      "Screenshot za tega uporabnika že poteka.",
       "#FFAA00"
     );
   }
@@ -1729,52 +1728,46 @@ if (command === "server") {
     "#5865F2"
   );
 
-  try {
-    const dm = await target.createDM();
+  const screenshots = [
+    "https://i.imgur.com/3ZUrjUP.png",
+    "https://i.imgur.com/ZF6s192.png",
+    "https://i.imgur.com/YZ6X9kA.png"
+  ];
 
-    const screenshots = [
-      "https://i.imgur.com/3ZUrjUP.png",
-      "https://i.imgur.com/ZF6s192.png",
-      "https://i.imgur.com/YZ6X9kA.png"
-    ];
+  const resolutions = ["1920x1080", "2560x1440", "1366x768"];
+  const osList = ["Windows 11", "Windows 10", "Ubuntu 22.04"];
 
-    const resolutions = ["1920x1080", "2560x1440", "1366x768"];
-    const osList = ["Windows 11", "Windows 10", "Ubuntu 22.04"];
+  const interval = setInterval(async () => {
+    if (!message.channel) return;
 
-    const interval = setInterval(async () => {
-      const img = screenshots[Math.floor(Math.random() * screenshots.length)];
-      const res = resolutions[Math.floor(Math.random() * resolutions.length)];
-      const os = osList[Math.floor(Math.random() * osList.length)];
+    const img = screenshots[Math.floor(Math.random() * screenshots.length)];
+    const res = resolutions[Math.floor(Math.random() * resolutions.length)];
+    const os = osList[Math.floor(Math.random() * osList.length)];
 
-      await dm.send({
-        content:
+    await message.channel.send({
+      content:
 `🖥 **Desktop Screenshot**
 👤 User: ${target.tag}
 🧠 OS: ${os}
 📐 Resolution: ${res}
 ⏱ Time: ${new Date().toLocaleTimeString()}`,
-        files: [img]
-      });
-    }, 3000); // ⏱ vsakih 3 sekunde
+      files: [img]
+    });
 
-    activeScreenshots.set(target.id, interval);
+  }, 3000); // ⏱ vsakih 3 sekunde
 
-    // ⏱ AUTO STOP po 1 minuti
-    setTimeout(() => {
-      if (activeScreenshots.has(target.id)) {
-        clearInterval(interval);
-        activeScreenshots.delete(target.id);
-        dm.send("🛑 Screenshot session closed.");
-      }
-    }, 60000);
+  activeScreenshots.set(target.id, interval);
 
-  } catch {
-    return sendEmbed(
-      message.channel,
-      "❌ Napaka",
-      "Ne morem poslati DM-ja (zaprti DM-ji).",
-      "#FF5555"
-    );
-  }
+  // ⏱ AUTO STOP po 60s
+  setTimeout(() => {
+    if (activeScreenshots.has(target.id)) {
+      clearInterval(interval);
+      activeScreenshots.delete(target.id);
+
+      message.channel.send(
+        `🛑 Screenshot za **${target.tag}** zaključen.`
+      );
+    }
+  }, 60000);
 }
 });
