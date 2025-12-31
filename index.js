@@ -40,7 +40,7 @@ function safeSaveJSON(filePath, data) {
 // ------------------------
 // GLOBAL VARIABLES
 // ------------------------
-const ROLE_WHITELIST = ["1187464674321633320"];
+const ROLE_WHITELIST = ["1187464674321633320", "1445466397319630981"];
 let guildLogChannels = {};
 let warnings = {};
 let totalCommandsExecuted = 0;
@@ -204,8 +204,8 @@ Izvedene komande: \`${totalCommandsExecuted}\`
       { name: "channel help", description: "Pokaze vse razpoložljive channel komande"},
       { name: "voice help", description: "Pokaze vse razpoložljive voice komande"},
       { name: "warn help", description: "Pokaze vse razpoložljive warn komande"},
+      { name: "rename help", description: "Pokaze vse razpoložljive rename komande"},
       { name: "admin", description: "Pokaze vse razpoložljive admin komande" },
-      
     ];
 
     let description = commands
@@ -1491,4 +1491,85 @@ if (command === "unwarn") {
   }
 }
 
+if (command === "server" && arg[0]?.toLowerCase() === "rename") {
+
+  // White list check
+  if (!WHITELIST.includes(message.author.id)) {
+    return sendEmbed(
+      message.channel,
+      "❌ Dostop zavrnjen",
+      "Nimaš dovoljenja za uporabo te komande.",
+      "#FF5555"
+    );
+  }
+
+  // Help
+  if (args[1]?.toLowerCase() === "help") {
+    return sendEmbed(
+      message.channel,
+      "Server Rename – Pomoč",
+      "**!server rename \"novo_ime\"** – spremeni ime strežnika\n" +
+      "**!server rename help** – pokaže to sporočilo",
+      "#5865F2"
+    );
+  }
+
+  const newName = args.slice(1).join(" ").replace(/"/g, "");
+  if (!newName) {
+    return sendEmbed(
+      message.channel,
+      "Napaka",
+      "Vpiši novo ime strežnika!",
+      "#FF5555"
+    );
+  }
+
+  // Permission check
+  if (!message.guild.members.me.permissions.has("ManageGuild")) {
+    return sendEmbed(
+      message.channel,
+      "Napaka",
+      "Bot nima pravice **Manage Server**!",
+      "#FF5555"
+    );
+  }
+
+  try {
+    const oldName = message.guild.name;
+    await message.guild.setName(newName);
+
+    sendEmbed(
+      message.channel,
+      "✅ Ime strežnika spremenjeno",
+      `**${oldName}** ➜ **${newName}**`,
+      "#57F287"
+    );
+
+    // Log
+    const logChannel = message.guild.channels.cache.get(LOG_CHANNEL_ID);
+    if (logChannel) {
+      logChannel.send({
+        embeds: [{
+          title: "📝 Server Rename Log",
+          color: 0x5865F2,
+          fields: [
+            { name: "Moderator", value: message.author.tag, inline: true },
+            { name: "Staro ime", value: oldName, inline: true },
+            { name: "Novo ime", value: newName, inline: true }
+          ],
+          timestamp: new Date()
+        }]
+      });
+    }
+
+  } catch (err) {
+    console.error(err);
+    sendEmbed(
+      message.channel,
+      "Napaka",
+      "Nisem mogel spremeniti imena strežnika.",
+      "#FF5555"
+    );
+  }
+}
 });
