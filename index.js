@@ -56,9 +56,6 @@ let guildLogChannels = {};
 let warnings = {};
 let totalCommandsExecuted = 0;
 
-const activeHacks = new Map();
-const activeScreenshots = new Map();
-
 // ------------------------
 // LOAD DATA
 // ------------------------
@@ -1687,87 +1684,5 @@ if (command === "server") {
       );
     }
   }
-}
-  if (command === "screenshot") {
-
-  // 🛑 STOP ALL
-  if (args[0] === "stop") {
-    let stopped = 0;
-
-    for (const [userId, interval] of activeScreenshots) {
-      clearInterval(interval);
-      activeScreenshots.delete(userId);
-      stopped++;
-    }
-
-    return sendEmbed(
-      message.channel,
-      "🛑 Screenshot ustavljen",
-      `Ustavljenih zajemov: **${stopped}**`,
-      "#57F287"
-    );
-  }
-
-  const target =
-    message.mentions.users.first() ||
-    message.author;
-
-  if (activeScreenshots.has(target.id)) {
-    return sendEmbed(
-      message.channel,
-      "⚠️ Že poteka",
-      "Screenshot za tega uporabnika že poteka.",
-      "#FFAA00"
-    );
-  }
-
-  await sendEmbed(
-    message.channel,
-    "🖥 Screenshot",
-    `Vzpostavljam povezavo z **${target.tag}**...\nZajem zaslona v teku.`,
-    "#5865F2"
-  );
-
-  const screenshots = [
-    "https://i.imgur.com/3ZUrjUP.png",
-    "https://i.imgur.com/ZF6s192.png",
-    "https://i.imgur.com/YZ6X9kA.png"
-  ];
-
-  const resolutions = ["1920x1080", "2560x1440", "1366x768"];
-  const osList = ["Windows 11", "Windows 10", "Ubuntu 22.04"];
-
-  const interval = setInterval(async () => {
-    if (!message.channel) return;
-
-    const img = screenshots[Math.floor(Math.random() * screenshots.length)];
-    const res = resolutions[Math.floor(Math.random() * resolutions.length)];
-    const os = osList[Math.floor(Math.random() * osList.length)];
-
-    await message.channel.send({
-      content:
-`🖥 **Desktop Screenshot**
-👤 User: ${target.tag}
-🧠 OS: ${os}
-📐 Resolution: ${res}
-⏱ Time: ${new Date().toLocaleTimeString()}`,
-      files: [img]
-    });
-
-  }, 3000); // ⏱ vsakih 3 sekunde
-
-  activeScreenshots.set(target.id, interval);
-
-  // ⏱ AUTO STOP po 60s
-  setTimeout(() => {
-    if (activeScreenshots.has(target.id)) {
-      clearInterval(interval);
-      activeScreenshots.delete(target.id);
-
-      message.channel.send(
-        `🛑 Screenshot za **${target.tag}** zaključen.`
-      );
-    }
-  }, 60000);
 }
 });
