@@ -1451,35 +1451,27 @@ if (command === "unwarn") {
 
   return;
 }
-  // ---------------- COMMAND: rename ----------------
-if (command === "rename" && args[0]) {
-  // preverimo, če je uporabnik owner ali whitelisted
-  const isOwner = message.author.id === message.guild.ownerId;
-  const isWhitelisted = ROLE_WHITELIST.includes(message.author.id);
-
-  if (!isOwner && !isWhitelisted) {
-    return sendEmbed(message.channel, "Dostop zavrnjen", "Samo owner ali whitelisted user lahko spreminja nick uporabnikov.", "#FF5555");
-  }
-
+  if (command === "rename") {
   const member = message.mentions.members.first();
   if (!member) return sendEmbed(message.channel, "Napaka", "Označi uporabnika!", "#FF5555");
 
-  const newName = args.slice(1).join(" "); // vse po @user
+  const newName = args.slice(1).join(" ");
+  if (!newName) return sendEmbed(message.channel, "Napaka", "Daj novo ime ali 'reset'!", "#FF5555");
 
-  if (!newName) return sendEmbed(message.channel, "Napaka", "Vpiši nov nickname ali 'reset'!", "#FF5555");
+  if (!message.guild.members.me.permissions.has("ManageNicknames"))
+    return sendEmbed(message.channel, "Napaka", "Botu manjka pravica za spreminjanje imen!", "#FF5555");
 
   try {
-  if (newName.toLowerCase() === "reset") {
-    await member.setNickname(null); // resetira nickname
-    sendEmbed(message.channel, "✅ Nickname resetiran", `${member.user.tag} ima sedaj originalni nickname.`, "#57F287");
-    await logAction(message.guild, "Nickname reset", `${message.author.tag} je resetiral nickname uporabnika ${member.user.tag}.`);
-  } else {
-    await member.setNickname(newName);
-    sendEmbed(message.channel, "✅ Nickname spremenjen", `${member.user.tag} ima sedaj nickname: ${newName}`, "#57F287");
-    await logAction(message.guild, "Nickname spremenjen", `${message.author.tag} je spremenil nickname uporabnika ${member.user.tag} v "${newName}".`);
+    if (newName.toLowerCase() === "reset") {
+      await member.setNickname(null);
+      sendEmbed(message.channel, "✅ Ime resetirano", `${member.user.tag} je sedaj brez nicknamea.`, "#57F287");
+    } else {
+      await member.setNickname(newName);
+      sendEmbed(message.channel, "✅ Ime spremenjeno", `${member.user.tag} je sedaj "${newName}".`, "#57F287");
+    }
+  } catch (err) {
+    console.error(err);
+    sendEmbed(message.channel, "Napaka", "Nisem mogel spremeniti imena. Preveri role in pravice.", "#FF5555");
   }
-} catch (err) {
-  console.error(err);
-  sendEmbed(message.channel, "Napaka", "Nimam dovoljenja za spremembo nick-a tega uporabnika!", "#FF5555");
 }
 });
