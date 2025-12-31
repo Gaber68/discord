@@ -186,9 +186,44 @@ Izvedene komande: \`${totalCommandsExecuted}\`
 
     await logAction(message.guild, "💻 Hack ukaz", isSelf ? `Uporabnik **${message.author.tag}** je hackal **samega sebe**.` : `Uporabnik **${message.author.tag}** je hackal **${target.tag}**.`, "#FFAA00");
 
-    try { await target.send({ content: "💀 Uspelo je.", files: ["https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Middle_finger_BNC.jpg/500px-Middle_finger_BNC.jpg"] }); }
-    catch { message.channel.send(`❌ Ne morem poslati DM-ja uporabniku **${target.tag}** (zaprti DM-ji).`); }
-    return;
+    try {
+  const dm = await target.createDM();
+
+  const filter = m => m.author.id === target.id;
+  const collector = dm.createMessageCollector({
+    filter,
+    time: 1 // ⏱ max 1 minuta
+  });
+
+  const interval = setInterval(async () => {
+    await dm.send({
+      files: [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Middle_finger_BNC.jpg/500px-Middle_finger_BNC.jpg"
+      ]
+    });
+  }, 2000);
+
+  collector.on("collect", async (msg) => {
+    clearInterval(interval);
+    collector.stop();
+
+    // 🎉 Easter egg
+    if (msg.content.toLowerCase().includes("gaber je kul")) {
+      await dm.send("😎 Potrjeno. Gaber je res kul.");
+    } else {
+      await dm.send("😅 OK, ustavljam.");
+    }
+  });
+
+  collector.on("end", () => {
+    clearInterval(interval);
+  });
+
+} catch {
+  message.channel.send(
+    `❌ Ne morem poslati DM-ja uporabniku **${target.tag}** (zaprti DM-ji).`
+  );
+}
   }
   // ---------------- COMMAND: komande ----------------
   if (command === "komande") {
