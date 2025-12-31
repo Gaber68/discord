@@ -1504,19 +1504,17 @@ if (command === "server") {
     );
   }
 
-  // 🔒 whitelist CHECK ŠELE ZDAJ
-  const hasPermission = message.member.roles.cache.some(r =>
-    ROLE_WHITELIST.includes(r.id)
-  );
-
-  if (!hasPermission) {
+  if (
+    message.author.id !== message.guild.ownerId &&
+    !ROLE_WHITELIST.includes(message.author.id) &&
+    !message.member.permissions.has(PermissionsBitField.Flags.KickMembers)
+  )
     return sendEmbed(
       message.channel,
-      "❌ Dostop zavrnjen",
-      "Nimaš dovoljenja za uporabo te server komande.",
+      "Dostop zavrnjen",
+      "Nimaš dovoljenja za odstranjevanje warnov.",
       "#FF5555"
     );
-  }
 
   // =====================
   // !server rename
