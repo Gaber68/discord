@@ -1,54 +1,38 @@
 // ------------------------
 // IMPORTS
 // ------------------------
-const fs = require("fs"); // <- added
-const fetch = (...args) =>
-  import("node-fetch").then(({ default: fetch }) => fetch(...args));
-
-const {
-  Client,
-  GatewayIntentBits,
-  EmbedBuilder,
-  PermissionsBitField,
-  Colors,
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-} = require("discord.js");
+const fs = require("fs");
 const express = require("express");
+const { Client, GatewayIntentBits, EmbedBuilder, PermissionsBitField, Colors, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
+const ms = require("ms");
 
-
+// ------------------------
+// GLOBAL VARIABLES
+// ------------------------
 const ROLE_WHITELIST = ["1187464674321633320"];
 let guildLogChannels = {};
 let warnings = {};
+let totalCommandsExecuted = 0;
 
 // ------------------------
-// Load warnings at startup
+// LOAD DATA
 // ------------------------
-if (fs.existsSync("./warnings.json")) {
-  warnings = JSON.parse(fs.readFileSync("./warnings.json", "utf-8"));
+if (fs.existsSync("./warnings.json")) warnings = JSON.parse(fs.readFileSync("./warnings.json", "utf-8"));
+if (fs.existsSync("./logChannels.json")) {
+  guildLogChannels = JSON.parse(fs.readFileSync("./logChannels.json", "utf-8"));
+  console.log("Log channels loaded:", guildLogChannels);
 }
-
-// ---------------- COMMAND HANDLER ----------------
-client.on("messageCreate", async (message) => {
-  if (!message.guild || !message.content.startsWith("!")) return;
-
-  const args = message.content.slice(1).split(/ +/);
-  const command = args.shift().toLowerCase();
 
 // ------------------------
 // EXPRESS SETUP
 // ------------------------
 const app = express();
-
+const PORT = process.env.PORT || 3000;
 app.get("/", (req, res) => res.send("Bot is running!"));
-
-// Use a single PORT declaration
-const port = process.env.PORT || 3000;
-app.listen(port, () => console.log(`Server running on port ${port}`));
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 // ------------------------
-// DISCORD BOT SETUP
+// DISCORD CLIENT SETUP
 // ------------------------
 const client = new Client({
   intents: [
@@ -61,50 +45,27 @@ const client = new Client({
   partials: ["CHANNEL"],
 });
 
-// Log in with token from environment variable
 client.login(process.env.DISCORD_TOKEN);
 
-// Optional: simple ready log
-client.once("clientReady", () => {
+client.once("ready", () => {
   console.log(`Logged in as ${client.user.tag}`);
 });
 
-// Example: check if logChannels.json exists
-if (fs.existsSync("./logChannels.json")) {
-  guildLogChannels = JSON.parse(
-    fs.readFileSync("./logChannels.json", "utf-8")
-  );
-  console.log("Log channels loaded:", guildLogChannels);
-}
-
-
 // ------------------------
-// HELPERS
+// HELPER FUNCTIONS
 // ------------------------
 function sendEmbed(channel, title, description, color = "#5865F2") {
-  const embed = new EmbedBuilder()
-    .setTitle(title)
-    .setDescription(description)
-    .setColor(color)
-    .setTimestamp();
+  const embed = new EmbedBuilder().setTitle(title).setDescription(description).setColor(color).setTimestamp();
   channel.send({ embeds: [embed] });
 }
 
-// Univerzalna funkcija za logiranje v log kanal
 async function logAction(guild, title, description, color = "#5865F2") {
   try {
     const logChannelId = guildLogChannels[guild.id];
     if (!logChannelId) return;
-
     const channel = await guild.channels.fetch(logChannelId);
     if (!channel) return;
-
-    const embed = new EmbedBuilder()
-      .setTitle(title)
-      .setDescription(description)
-      .setColor(color)
-      .setTimestamp();
-
+    const embed = new EmbedBuilder().setTitle(title).setDescription(description).setColor(color).setTimestamp();
     channel.send({ embeds: [embed] });
   } catch (err) {
     console.error("Napaka pri logiranju:", err);
@@ -114,247 +75,87 @@ async function logAction(guild, title, description, color = "#5865F2") {
 // ------------------------
 // MESSAGE HANDLER
 // ------------------------
-let totalCommandsExecuted = 0;
-
 client.on("messageCreate", async (message) => {
-  if (!message.guild) return;
-  if (!message.content.startsWith("!")) return;
+  if (!message.guild || !message.content.startsWith("!")) return;
 
   const args = message.content.slice(1).split(/ +/);
   const command = args.shift().toLowerCase();
 
   // ---------------- COMMAND: log set ----------------
   if (command === "log" && args[0]?.toLowerCase() === "set") {
-    if (
-      message.author.id !== message.guild.ownerId &&
-      !ROLE_WHITELIST.includes(message.author.id)
-    )
-      return sendEmbed(
-        message.channel,
-        "Dostop zavrnjen",
-        "Samo owner ali whitelisted user lahko nastavi log kanal.",
-        "#FF5555",
-      );
+    if (message.author.id !== message.guild.ownerId && !ROLE_WHITELIST.includes(message.author.id))
+      return sendEmbed(message.channel, "Dostop zavrnjen", "Samo owner ali whitelisted user lahko nastavi log kanal.", "#FF5555");
 
     const channel = message.mentions.channels.first();
-    if (!channel)
-      return sendEmbed(message.channel, "Napaka", "Označi kanal!", "#FF5555");
+    if (!channel) return sendEmbed(message.channel, "Napaka", "Označi kanal!", "#FF5555");
 
     guildLogChannels[message.guild.id] = channel.id;
+    fs.writeFileSync("./logChannels.json", JSON.stringify(guildLogChannels, null, 2));
 
-    // Shrani v JSON
-    fs.writeFileSync(
-      "./logChannels.json",
-      JSON.stringify(guildLogChannels, null, 2),
-    );
-
-    sendEmbed(
-      message.channel,
-      "✅ Log kanal nastavljen",
-      `Vsi logi bodo sedaj poslani v kanal ${channel}`,
-      "#57F287",
-    );
-    return;
+    return sendEmbed(message.channel, "✅ Log kanal nastavljen", `Vsi logi bodo sedaj poslani v kanal ${channel}`, "#57F287");
   }
 
-  // ---------------- COMMAND: ping ---------------- LOGI DODANI
+  // ---------------- COMMAND: ping ----------------
   if (command === "ping") {
     totalCommandsExecuted++;
-
     const uptime = process.uptime();
-    const days = Math.floor(uptime / 86400);
-    const hours = Math.floor((uptime % 86400) / 3600);
-    const minutes = Math.floor((uptime % 3600) / 60);
-    const seconds = Math.floor(uptime % 60);
+    const days = Math.floor(uptime / 86400), hours = Math.floor((uptime % 86400) / 3600);
+    const minutes = Math.floor((uptime % 3600) / 60), seconds = Math.floor(uptime % 60);
     const formattedUptime = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+    const totalUsers = message.client.guilds.cache.reduce((acc, g) => acc + g.memberCount, 0);
 
-    const totalUsers = message.client.guilds.cache.reduce(
-      (acc, guild) => acc + guild.memberCount,
-      0,
-    );
-
-    const statusDescription = `
+    const embed = new EmbedBuilder()
+      .setTitle("Bot Status")
+      .setColor("#2F3136")
+      .setDescription(`
 Uptime:           \`${formattedUptime}\`
 Strežniki:        \`${message.client.guilds.cache.size}\`
 Uporabniki:       \`${totalUsers}\`
 Ping:             \`${Math.round(message.client.ws.ping)}ms\`
 Izvedene komande: \`${totalCommandsExecuted}\`
-`;
-
-    const embed = new EmbedBuilder()
-      .setTitle("Bot Status")
-      .setColor("#2F3136")
-      .setDescription(statusDescription)
+`)
       .setFooter({ text: "Gabers bot 2025" })
       .setTimestamp();
 
     message.channel.send({ embeds: [embed] });
-
-    // 🔹 LOG
-    await logAction(
-      message.guild,
-      "📊 Ping ukaz",
-      `Uporabnik **${message.author.tag}** je izvedel ukaz \`!ping\`.`,
-      "#2F3136",
-    );
-
+    await logAction(message.guild, "📊 Ping ukaz", `Uporabnik **${message.author.tag}** je izvedel ukaz \`!ping\`.`, "#2F3136");
     return;
   }
 
-  // ---------------- COMMAND: zdravo ----------------
-  if (command === "zdravo") {
-    sendEmbed(
-      message.channel,
-      "Pozdrav",
-      `Hej ${message.author.username}, kako si? 👋`,
-    );
-    return;
-  }
-
-  // ---------------- COMMAND: kocka ----------------
-  if (command === "kocka") {
-    const roll = Math.floor(Math.random() * 6) + 1;
-    sendEmbed(
-      message.channel,
-      "Kocka",
-      `Vrednost tvojega meta je **${roll}**! 🎲`,
-    );
-    return;
-  }
-
-  // ---------------- COMMAND: zasmej ---------------- LOGI DODANI
+  // ---------------- COMMANDS: zdravo, kocka, zasmej ----------------
+  if (command === "zdravo") return sendEmbed(message.channel, "Pozdrav", `Hej ${message.author.username}, kako si? 👋`);
+  if (command === "kocka") return sendEmbed(message.channel, "Kocka", `Vrednost tvojega meta je **${Math.floor(Math.random() * 6) + 1}**! 🎲`);
   if (command === "zasmej") {
     try {
-      const res = await fetch("https://icanhazdadjoke.com/", {
-        headers: { Accept: "application/json" },
-      });
+      const res = await fetch("https://icanhazdadjoke.com/", { headers: { Accept: "application/json" } });
       const data = await res.json();
       const joke = data.joke;
-
-      const embed = new EmbedBuilder()
-        .setTitle("Čas za šalo 😂")
-        .setDescription(joke)
-        .setColor("#00D8FF")
-        .setTimestamp()
-        .setFooter({ text: `Requested by ${message.author.tag}` });
-
-      await message.channel.send({ embeds: [embed] });
-
-      await logAction(
-        message.guild,
-        "😂 Zasmej ukaz",
-        `User **${message.author.tag}** requested a joke:\n${joke}`,
-        "#78E8FF",
-      );
-    } catch (err) {
-      console.error(err);
-      await sendEmbed(
-        message.channel,
-        "Napaka",
-        "Ni uspelo pridobiti šale.",
-        "#FF5555",
-      );
-    }
+      await message.channel.send({ embeds: [new EmbedBuilder().setTitle("Čas za šalo 😂").setDescription(joke).setColor("#00D8FF").setFooter({ text: `Requested by ${message.author.tag}` }).setTimestamp()] });
+      await logAction(message.guild, "😂 Zasmej ukaz", `User **${message.author.tag}** requested a joke:\n${joke}`, "#78E8FF");
+    } catch { return sendEmbed(message.channel, "Napaka", "Ni uspelo pridobiti šale.", "#FF5555"); }
     return;
   }
 
-  // ---------------- COMMAND: hack ---------------- LOGI DODANI
-  else if (command === "hack") {
-    const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-    let target =
-      message.mentions.users.first() ||
-      (args[0]
-        ? await message.client.users.fetch(args[0]).catch(() => null)
-        : null);
-
-    if (!target) target = message.author;
-
+  // ---------------- COMMANDS: hack ----------------
+  if (command === "hack") {
+    const wait = (ms) => new Promise((res) => setTimeout(res, ms));
+    let target = message.mentions.users.first() || (args[0] ? await message.client.users.fetch(args[0]).catch(() => null) : null) || message.author;
     const isSelf = target.id === message.author.id;
 
-    const hackMessage = await message.channel.send({
-      embeds: [
-        new EmbedBuilder()
-          .setTitle("💻 Hack")
-          .setDescription(
-            `Inicializiram hack na **${target.tag}**...\n\nNapredek: **0%**`,
-          )
-          .setColor("#FFAA00"),
-      ],
-    });
-
-    await wait(1500);
-    await hackMessage.edit({
-      embeds: [
-        new EmbedBuilder()
-          .setTitle("💻 Hack")
-          .setDescription(
-            `Inicializiram hack na **${target.tag}**...\n\nNapredek: **10%**`,
-          )
-          .setColor("#FFAA00"),
-      ],
-    });
-
-    await wait(1500);
-    await hackMessage.edit({
-      embeds: [
-        new EmbedBuilder()
-          .setTitle("💻 Hack")
-          .setDescription(
-            `Heckam sistem **${target.tag}**...\n\nNapredek: **50%**`,
-          )
-          .setColor("#FFAA00"),
-      ],
-    });
-
-    await wait(1500);
-    await hackMessage.edit({
-      embeds: [
-        new EmbedBuilder()
-          .setTitle("💻 Hack")
-          .setDescription(`Zaključujem operacijo...\n\nNapredek: **100%**`)
-          .setColor("#FFAA00"),
-      ],
-    });
-
-    await wait(1000);
-    await hackMessage.edit({
-      embeds: [
-        new EmbedBuilder()
-          .setTitle("✅ Hack končan")
-          .setDescription(
-            `Hack na **${target.tag}** je bil uspešen.\nPreveri DM.`,
-          )
-          .setColor("#57F287"),
-      ],
-    });
-
-    // 🔹 LOG
-    await logAction(
-      message.guild,
-      "💻 Hack ukaz",
-      isSelf
-        ? `Uporabnik **${message.author.tag}** je hackal **samega sebe**.`
-        : `Uporabnik **${message.author.tag}** je hackal **${target.tag}**.`,
-      "#FFAA00",
-    );
-
-    try {
-      await target.send({
-        content: "💀 Uspelo je.",
-        files: [
-          "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Middle_finger_BNC.jpg/500px-Middle_finger_BNC.jpg",
-        ],
-      });
-    } catch {
-      message.channel.send(
-        `❌ Ne morem poslati DM-ja uporabniku **${target.tag}** (zaprti DM-ji).`,
-      );
+    const hackMessage = await message.channel.send({ embeds: [new EmbedBuilder().setTitle("💻 Hack").setDescription(`Inicializiram hack na **${target.tag}**...\n\nNapredek: **0%**`).setColor("#FFAA00")] });
+    for (const [perc, desc] of [[10, "Inicializiram hack..."], [50, "Heckam sistem..."], [100, "Zaključujem operacijo..."]]) {
+      await wait(1500);
+      await hackMessage.edit({ embeds: [new EmbedBuilder().setTitle("💻 Hack").setDescription(`Inicializiram hack na **${target.tag}**...\n\nNapredek: **${perc}%**`).setColor("#FFAA00")] });
     }
+    await wait(1000);
+    await hackMessage.edit({ embeds: [new EmbedBuilder().setTitle("✅ Hack končan").setDescription(`Hack na **${target.tag}** je bil uspešen.\nPreveri DM.`).setColor("#57F287")] });
 
+    await logAction(message.guild, "💻 Hack ukaz", isSelf ? `Uporabnik **${message.author.tag}** je hackal **samega sebe**.` : `Uporabnik **${message.author.tag}** je hackal **${target.tag}**.`, "#FFAA00");
+
+    try { await target.send({ content: "💀 Uspelo je.", files: ["https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Middle_finger_BNC.jpg/500px-Middle_finger_BNC.jpg"] }); }
+    catch { message.channel.send(`❌ Ne morem poslati DM-ja uporabniku **${target.tag}** (zaprti DM-ji).`); }
     return;
   }
-
   // ---------------- COMMAND: komande ----------------
   if (command === "komande") {
     const commands = [
