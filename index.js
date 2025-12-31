@@ -1491,7 +1491,7 @@ if (command === "unwarn") {
   }
 }
 
-if (command === "server" && arg[0]?.toLowerCase() === "rename") {
+if (command === "server" && args[0]?.toLowerCase() === "rename") {
 
   // White list check
   if (!WHITELIST.includes(message.author.id)) {
