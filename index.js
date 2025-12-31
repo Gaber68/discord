@@ -56,7 +56,6 @@ let guildLogChannels = {};
 let warnings = {};
 let totalCommandsExecuted = 0;
 const activeHacks = new Map();
-const activeHacks = new Map();
 
 // ------------------------
 // LOAD DATA
