@@ -1453,6 +1453,19 @@ if (command === "unwarn") {
 }
   if (command === "rename") {
   const member = message.mentions.members.first();
+
+  // Če uporabnik napiše samo !rename help
+  if (args[0]?.toLowerCase() === "help") {
+    return sendEmbed(
+      message.channel,
+      "Rename Komanda - Pomoč",
+      "**!rename @user \"novo_ime\"** - spremeni nickname uporabnika.\n" +
+      "**!rename @user reset** - resetira nickname uporabnika.\n" +
+      "**!rename help** - pokaže to sporočilo.",
+      "#5865F2"
+    );
+  }
+
   if (!member) return sendEmbed(message.channel, "Napaka", "Označi uporabnika!", "#FF5555");
 
   const newName = args.slice(1).join(" ");
@@ -1469,9 +1482,13 @@ if (command === "unwarn") {
       await member.setNickname(newName);
       sendEmbed(message.channel, "✅ Ime spremenjeno", `${member.user.tag} je sedaj "${newName}".`, "#57F287");
     }
+
+    // Pošlji log v log channel
+    await logAction(message.guild, "Rename", `${message.author.tag} je spremenil nickname ${member.user.tag} na "${newName}".`);
   } catch (err) {
     console.error(err);
     sendEmbed(message.channel, "Napaka", "Nisem mogel spremeniti imena. Preveri role in pravice.", "#FF5555");
   }
 }
+
 });
