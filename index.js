@@ -236,7 +236,8 @@ Izvedene komande: \`${totalCommandsExecuted}\`
 } catch {
   message.channel.send(
     `❌ Ne morem poslati DM-ja uporabniku **${target.tag}** (zaprti DM-ji).`
-  );
+    );
+  }
 }
     
   // ---------------- COMMAND: komande ----------------
