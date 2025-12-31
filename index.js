@@ -115,9 +115,9 @@ client.on("messageCreate", async (message) => {
   // ---------------- COMMAND: log set ----------------
   if (command === "log" && args[0]?.toLowerCase() === "set") {
   const isOwner = message.author.id === message.guild.ownerId;
-  const hasWhitelistRole = message.member.roles.cache.some(r => ROLE_WHITELIST.includes(r.id));
+  const isWhitelisted = ROLE_WHITELIST.includes(message.author.id);
 
-  if (!isOwner && !hasWhitelistRole)
+  if (!isOwner && !isWhitelisted)
     return sendEmbed(message.channel, "Dostop zavrnjen", "Samo owner ali whitelisted user lahko nastavi log kanal.", "#FF5555");
 
   const channel = message.mentions.channels.first();
