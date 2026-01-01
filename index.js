@@ -914,26 +914,30 @@ else if (command === "role") {
         break;
       }
 
-      case "rperm": {
-        const role = message.mentions.roles.first();
-        // Odstrani narekovaje iz argumenta
-        const permRaw = args.slice(2).join(" ").replace(/"/g, "").toUpperCase();
-        if (!role) throw "Označi role!";
+      DEBUG: Dodaj console.log PRED throw da vidimo kaj se dogaja:
+javascriptcase "rperm": {
+  const role = message.mentions.roles.first();
+  const permRaw = args.slice(2).join(" ").replace(/"/g, "").toUpperCase();
+  if (!role) throw "Označi role!";
 
-        if (permRaw === "ALL") {
-          await role.setPermissions([]);
-          await role.edit({ hoist: false });
-        } else if (permRaw === "DISPLAY") {
-          await role.edit({ hoist: false });
-        } else {
-          const perm = PERM_MAP[permRaw];
-          if (!perm || typeof perm !== "number") throw `Neveljaven permission: ${permRaw}`;
-          const currentPerms = role.permissions.toArray();
-          const filteredPerms = currentPerms.filter(p => p !== perm);
-          await role.setPermissions(filteredPerms);
-        }
-        break;
-      }
+  if (permRaw === "ALL") {
+    await role.setPermissions([]);
+    await role.edit({ hoist: false });
+  } else if (permRaw === "DISPLAY") {
+    await role.edit({ hoist: false });
+  } else {
+    console.log("DEBUG permRaw:", permRaw); // DODAJ TO
+    console.log("DEBUG PERM_MAP[permRaw]:", PERM_MAP[permRaw]); // DODAJ TO
+    console.log("DEBUG typeof:", typeof PERM_MAP[permRaw]); // DODAJ TO
+    
+    const perm = PERM_MAP[permRaw];
+    if (!perm || typeof perm !== "number") throw `Neveljaven permission: ${permRaw}`;
+    const currentPerms = role.permissions.toArray();
+    const filteredPerms = currentPerms.filter(p => p !== perm);
+    await role.setPermissions(filteredPerms);
+  }
+  break;
+}
 
       case "dperm": {
         const role = message.mentions.roles.first();
