@@ -682,64 +682,63 @@ Izvedene komande: \`${totalCommandsExecuted}\`
   }
 
   // ---------------- Role ukazi z logiranjem ---------------- LOGI DODANI
-  else if (command === "role") {
+  // ---------------- COMMAND: ROLE ----------------
+else if (command === "role") {
   if (!message.guild) return;
 
   const sub = args[0]?.toLowerCase();
   const botMember = message.guild.members.me;
 
-  /* ================= PERMISSION CHECK ================= */
+  // ---------------- PERMISSION CHECK ----------------
   const hasPermission =
     ROLE_WHITELIST.includes(message.author.id) ||
     message.author.id === message.guild.ownerId ||
     message.member.permissions.has(PermissionsBitField.Flags.ManageRoles);
 
-  /* ================= PERMISSION MAP ================= */
+  // ---------------- PERMISSION MAP ----------------
   const PERM_MAP = {
     // Moderation
-    KICK_MEMBERS: "KickMembers",
-    BAN_MEMBERS: "BanMembers",
-    TIMEOUT_MEMBERS: "ModerateMembers",
-    MODERATE_MEMBERS: "ModerateMembers",
-    MANAGE_MESSAGES: "ManageMessages",
-    MANAGE_NICKNAMES: "ManageNicknames",
+    KICK_MEMBERS: PermissionsBitField.Flags.KickMembers,
+    BAN_MEMBERS: PermissionsBitField.Flags.BanMembers,
+    MODERATE_MEMBERS: PermissionsBitField.Flags.ModerateMembers,
+    MANAGE_MESSAGES: PermissionsBitField.Flags.ManageMessages,
+    MANAGE_NICKNAMES: PermissionsBitField.Flags.ManageNicknames,
 
     // Roles & Server
-    MANAGE_ROLES: "ManageRoles",
-    MANAGE_CHANNELS: "ManageChannels",
-    MANAGE_GUILD: "ManageGuild",
-    VIEW_AUDIT_LOG: "ViewAuditLog",
-    MANAGE_EVENTS: "ManageEvents",
+    MANAGE_ROLES: PermissionsBitField.Flags.ManageRoles,
+    MANAGE_CHANNELS: PermissionsBitField.Flags.ManageChannels,
+    MANAGE_GUILD: PermissionsBitField.Flags.ManageGuild,
+    VIEW_AUDIT_LOG: PermissionsBitField.Flags.ViewAuditLog,
+    MANAGE_EVENTS: PermissionsBitField.Flags.ManageEvents,
 
     // Voice
-    CONNECT: "Connect",
-    SPEAK: "Speak",
-    MUTE_MEMBERS: "MuteMembers",
-    DEAFEN_MEMBERS: "DeafenMembers",
-    MOVE_MEMBERS: "MoveMembers",
-    PRIORITY_SPEAKER: "PrioritySpeaker",
-    STREAM: "Stream",
-    USE_VAD: "UseVad",
+    CONNECT: PermissionsBitField.Flags.Connect,
+    SPEAK: PermissionsBitField.Flags.Speak,
+    MUTE_MEMBERS: PermissionsBitField.Flags.MuteMembers,
+    DEAFEN_MEMBERS: PermissionsBitField.Flags.DeafenMembers,
+    MOVE_MEMBERS: PermissionsBitField.Flags.MoveMembers,
+    PRIORITY_SPEAKER: PermissionsBitField.Flags.PrioritySpeaker,
+    STREAM: PermissionsBitField.Flags.Stream,
 
     // Text
-    SEND_MESSAGES: "SendMessages",
-    READ_MESSAGE_HISTORY: "ReadMessageHistory",
-    ADD_REACTIONS: "AddReactions",
-    ATTACH_FILES: "AttachFiles",
-    EMBED_LINKS: "EmbedLinks",
-    USE_EXTERNAL_EMOJIS: "UseExternalEmojis",
-    USE_EXTERNAL_STICKERS: "UseExternalStickers",
-    MENTION_EVERYONE: "MentionEveryone",
+    SEND_MESSAGES: PermissionsBitField.Flags.SendMessages,
+    READ_MESSAGE_HISTORY: PermissionsBitField.Flags.ReadMessageHistory,
+    ADD_REACTIONS: PermissionsBitField.Flags.AddReactions,
+    ATTACH_FILES: PermissionsBitField.Flags.AttachFiles,
+    EMBED_LINKS: PermissionsBitField.Flags.EmbedLinks,
+    USE_EXTERNAL_EMOJIS: PermissionsBitField.Flags.UseExternalEmojis,
+    USE_EXTERNAL_STICKERS: PermissionsBitField.Flags.UseExternalStickers,
+    MENTION_EVERYONE: PermissionsBitField.Flags.MentionEveryone,
 
     // Threads
-    CREATE_PUBLIC_THREADS: "CreatePublicThreads",
-    CREATE_PRIVATE_THREADS: "CreatePrivateThreads",
-    MANAGE_THREADS: "ManageThreads",
+    CREATE_PUBLIC_THREADS: PermissionsBitField.Flags.CreatePublicThreads,
+    CREATE_PRIVATE_THREADS: PermissionsBitField.Flags.CreatePrivateThreads,
+    MANAGE_THREADS: PermissionsBitField.Flags.ManageThreads,
   };
 
   const ALL_PERMS = Object.values(PERM_MAP);
 
-  /* ================= HELP (BREZ DOVOLJENJ) ================= */
+  // ---------------- HELP ----------------
   if (sub === "help") {
     const embed = new EmbedBuilder()
       .setTitle("📖 Role Komande")
@@ -760,7 +759,7 @@ Izvedene komande: \`${totalCommandsExecuted}\`
     return message.channel.send({ embeds: [embed] });
   }
 
-  /* ================= PERMS LIST (BREZ DOVOLJENJ) ================= */
+  // ---------------- PERMS LIST ----------------
   if (sub === "perms") {
     const embed = new EmbedBuilder()
       .setTitle("🔐 Role Permissions")
@@ -776,7 +775,7 @@ Izvedene komande: \`${totalCommandsExecuted}\`
     return message.channel.send({ embeds: [embed] });
   }
 
-  /* ================= BLOCK ================= */
+  // ---------------- BLOCK IF NO PERMISSION ----------------
   if (!hasPermission) {
     return message.channel.send({
       embeds: [
@@ -788,10 +787,9 @@ Izvedene komande: \`${totalCommandsExecuted}\`
     });
   }
 
-  /* ================= ACTIONS ================= */
+  // ---------------- ACTIONS ----------------
   try {
     switch (sub) {
-
       case "add": {
         const member = message.mentions.members.first();
         const role = message.mentions.roles.first();
@@ -858,6 +856,7 @@ Izvedene komande: \`${totalCommandsExecuted}\`
     });
   }
 }
+
 
 
   // ---------------- Channel ukazi z logiranjem ---------------- LOGI DODANI
