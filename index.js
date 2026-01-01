@@ -681,7 +681,6 @@ Izvedene komande: \`${totalCommandsExecuted}\`
     }
   }
 
-  // ---------------- Role ukazi z logiranjem ---------------- LOGI DODANI
   // ---------------- COMMAND: ROLE ----------------
 else if (command === "role") {
   if (!message.guild) return;
@@ -739,7 +738,45 @@ else if (command === "role") {
     DISPLAY: "DISPLAY",
   };
 
-  const ALL_PERMS = Object.values(PERM_MAP).filter(p => typeof p === "number");
+  const ALL_PERMS = [
+    // Moderation
+    PermissionsBitField.Flags.KickMembers,
+    PermissionsBitField.Flags.BanMembers,
+    PermissionsBitField.Flags.ModerateMembers,
+    PermissionsBitField.Flags.ManageMessages,
+    PermissionsBitField.Flags.ManageNicknames,
+    
+    // Roles & Server
+    PermissionsBitField.Flags.ManageRoles,
+    PermissionsBitField.Flags.ManageChannels,
+    PermissionsBitField.Flags.ManageGuild,
+    PermissionsBitField.Flags.ViewAuditLog,
+    PermissionsBitField.Flags.ManageEvents,
+    
+    // Voice
+    PermissionsBitField.Flags.Connect,
+    PermissionsBitField.Flags.Speak,
+    PermissionsBitField.Flags.MuteMembers,
+    PermissionsBitField.Flags.DeafenMembers,
+    PermissionsBitField.Flags.MoveMembers,
+    PermissionsBitField.Flags.PrioritySpeaker,
+    PermissionsBitField.Flags.Stream,
+    
+    // Text
+    PermissionsBitField.Flags.SendMessages,
+    PermissionsBitField.Flags.ReadMessageHistory,
+    PermissionsBitField.Flags.AddReactions,
+    PermissionsBitField.Flags.AttachFiles,
+    PermissionsBitField.Flags.EmbedLinks,
+    PermissionsBitField.Flags.UseExternalEmojis,
+    PermissionsBitField.Flags.UseExternalStickers,
+    PermissionsBitField.Flags.MentionEveryone,
+    
+    // Threads
+    PermissionsBitField.Flags.CreatePublicThreads,
+    PermissionsBitField.Flags.CreatePrivateThreads,
+    PermissionsBitField.Flags.ManageThreads,
+  ];
 
   /* ================= HELP ================= */
   if (sub === "help") {
@@ -820,7 +857,7 @@ else if (command === "role") {
 
       case "create": {
         if (!args[1]) throw "Podaj ime role!";
-        let color = null;
+        let color = undefined; // Spremenjeno iz null v undefined
         let name = args.slice(1).join(" ");
 
         const lastArg = args[args.length - 1];
@@ -829,7 +866,11 @@ else if (command === "role") {
           name = args.slice(1, -1).join(" ");
         }
 
-        await message.guild.roles.create({ name, color });
+        // Če ni barve, ne daj color parametra
+        const roleOptions = { name };
+        if (color) roleOptions.color = color;
+
+        await message.guild.roles.create(roleOptions);
         break;
       }
 
@@ -856,39 +897,42 @@ else if (command === "role") {
         const permRaw = args.slice(2).join(" ").toUpperCase();
 
         if (permRaw === "ALL") {
-          const currentPerms = role.permissions.toArray();
-          await role.setPermissions([...new Set([...currentPerms, ...ALL_PERMS])]);
+          // Nastavi VSE permissione iz seznama + hoist
+          await role.setPermissions(ALL_PERMS);
           await role.edit({ hoist: true });
+          console.log(`✅ Role ${role.name} dobil ${ALL_PERMS.length} permissions + display`);
         } else if (permRaw === "DISPLAY") {
           await role.edit({ hoist: true });
         } else {
           const perm = PERM_MAP[permRaw];
           if (!perm || typeof perm !== "number") throw `Neveljaven permission: ${permRaw}`;
+          
+          // Dodaj permission k obstoječim
           const currentPerms = role.permissions.toArray();
-          await role.setPermissions([...new Set([...currentPerms, perm])]);
+          await role.setPermissions([...currentPerms, perm]);
         }
         break;
       }
 
-      case "setperm": {
+      case "rperm": {
         const role = message.mentions.roles.first();
-        if (!role) throw "Označi role!";
         const permRaw = args.slice(2).join(" ").toUpperCase();
+        if (!role) throw "Označi role!";
 
         if (permRaw === "ALL") {
-        // Direktno nastavi vse permissione (brez merge-anja s trenutnimi)
-        await role.setPermissions(ALL_PERMS);
-        await role.edit({ hoist: true });
-      } else if (permRaw === "DISPLAY") {
-        await role.edit({ hoist: true });
-      } else {
-        const perm = PERM_MAP[permRaw];
-        if (!perm || typeof perm !== "number") throw `Neveljaven permission: ${permRaw}`;
-        // Za single permission uporabi add namesto set
-        await role.permissions.add(perm);
+          await role.setPermissions([]);
+          await role.edit({ hoist: false });
+        } else if (permRaw === "DISPLAY") {
+          await role.edit({ hoist: false });
+        } else {
+          const perm = PERM_MAP[permRaw];
+          if (!perm || typeof perm !== "number") throw `Neveljaven permission: ${permRaw}`;
+          const currentPerms = role.permissions.toArray();
+          const filteredPerms = currentPerms.filter(p => p !== perm);
+          await role.setPermissions(filteredPerms);
+        }
+        break;
       }
-      break;
-    }
 
       case "dperm": {
         const role = message.mentions.roles.first();
