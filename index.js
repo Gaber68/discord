@@ -1018,7 +1018,7 @@ else if (command === "role") {
       ],
     });
   }
-
+}
 
 
   // ---------------- Channel ukazi z logiranjem ---------------- LOGI DODANI
