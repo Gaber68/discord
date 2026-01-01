@@ -857,35 +857,42 @@ else if (command === "role") {
   const permRaw = args.slice(2).join(" ").toUpperCase();
 
   if (permRaw === "ALL") {
-    await role.setPermissions(ALL_PERMS); // samo številke
+    // Add ALL_PERMS to existing permissions (union)
+    const currentPerms = role.permissions.toArray();
+    await role.setPermissions([...new Set([...currentPerms, ...ALL_PERMS])]);
     await role.edit({ hoist: true }); // DISPLAY ločeno
   } else if (permRaw === "DISPLAY") {
     await role.edit({ hoist: true });
   } else {
     const perm = PERM_MAP[permRaw];
-    if (!perm) throw `Neveljaven permission: ${permRaw}`;
-    await role.setPermissions([...new Set([...role.permissions.toArray(), perm])]);
+    if (!perm || typeof perm !== "number") throw `Neveljaven permission: ${permRaw}`;
+    // Add single permission to existing
+    const currentPerms = role.permissions.toArray();
+    await role.setPermissions([...new Set([...currentPerms, perm])]);
   }
   break;
 }
 
       case "rperm": {
-        const role = message.mentions.roles.first();
-        const permRaw = args.slice(2).join(" ").toUpperCase();
-        if (!role) throw "Označi role!";
+  const role = message.mentions.roles.first();
+  const permRaw = args.slice(2).join(" ").toUpperCase();
+  if (!role) throw "Označi role!";
 
-        if (permRaw === "ALL") {
-          await role.setPermissions([]);
-          await role.edit({ hoist: false });
-        } else if (permRaw === "DISPLAY") {
-          await role.edit({ hoist: false });
-        } else {
-          const perm = PERM_MAP[permRaw];
-          if (!perm) throw `Neveljaven permission: ${permRaw}`;
-          await role.setPermissions(role.permissions.toArray().filter(p => p !== perm));
-        }
-        break;
-      }
+  if (permRaw === "ALL") {
+    await role.setPermissions([]);
+    await role.edit({ hoist: false });
+  } else if (permRaw === "DISPLAY") {
+    await role.edit({ hoist: false });
+  } else {
+    const perm = PERM_MAP[permRaw];
+    if (!perm || typeof perm !== "number") throw `Neveljaven permission: ${permRaw}`;
+    // Remove by filtering out the numeric flag from current permissions
+    const currentPerms = role.permissions.toArray();
+    const filteredPerms = currentPerms.filter(p => p !== perm);
+    await role.setPermissions(filteredPerms);
+  }
+  break;
+}
 
       default:
         return message.reply("❓ Neznan `!role` podukaz.");
