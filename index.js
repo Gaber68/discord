@@ -325,7 +325,6 @@ Izvedene komande: \`${totalCommandsExecuted}\`
     )
     .setColor("#5865F2")
     .setTimestamp()
-    .setFooter({ text: "Command Overview • hitro & pregledno" });
 
   return message.channel.send({ embeds: [embed] });
 }
