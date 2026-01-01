@@ -688,6 +688,13 @@ Izvedene komande: \`${totalCommandsExecuted}\`
   const sub = args[0]?.toLowerCase();
   const botMember = message.guild.members.me;
 
+  const ROLE_WHITELIST = []; // po potrebi dodaj ID-je
+
+  const hasPermission =
+    message.member.permissions.has(PermissionsBitField.Flags.ManageRoles) ||
+    ROLE_WHITELIST.includes(message.author.id) ||
+    message.author.id === message.guild.ownerId;
+
   /* ================= HELP (BREZ DOVOLJENJ) ================= */
   if (sub === "help") {
     const helpEmbed = new EmbedBuilder()
@@ -712,16 +719,20 @@ Izvedene komande: \`${totalCommandsExecuted}\`
         },
         {
           name: "!role perms",
-          value: "Prikaže seznam vseh permissionov in navodila.\n**Primer:** `!role perms`",
+          value: "Pokaže seznam vseh permissions in navodila za dodajanje.",
         },
         {
           name: "!role setperm @role \"PERMISSION\"",
-          value: "Doda permission role.\n**Primer:** `!role setperm @Moderator \"MANAGE_MESSAGES\"`",
+          value: "Doda permission role.\n**Primer:** `!role setperm @Moderator DEAFEN_MEMBERS`",
         },
         {
-          name: "!role help",
-          value: "Prikaže to pomoč.",
-        }
+          name: "!role rperm @role \"PERMISSION\"",
+          value: "Odstrani permission role.\n**Primer:** `!role rperm @Moderator DEAFEN_MEMBERS`",
+        },
+        {
+          name: "!role rperm @role all",
+          value: "Odstrani vse permissions role.\n**Primer:** `!role rperm @Moderator all`",
+        },
       )
       .setColor("#02B025")
       .setTimestamp()
@@ -729,12 +740,6 @@ Izvedene komande: \`${totalCommandsExecuted}\`
 
     return message.channel.send({ embeds: [helpEmbed] });
   }
-
-  /* ================= PERMISSION CHECK ================= */
-  const hasPermission =
-    message.member.permissions.has(PermissionsBitField.Flags.ManageRoles) ||
-    ROLE_WHITELIST.includes(message.author.id) ||
-    message.author.id === message.guild.ownerId;
 
   if (!hasPermission) {
     return sendEmbed(
@@ -758,6 +763,39 @@ Izvedene komande: \`${totalCommandsExecuted}\`
   const handleRoleAction = async (title, description, color = "#02B025") => {
     await logAction(message.guild, title, description, color);
     await sendResult();
+  };
+
+  /* ================= PERMISSIONS MAP ================= */
+  const PERM_MAP = {
+    KICK_MEMBERS: "KickMembers",
+    BAN_MEMBERS: "BanMembers",
+    TIMEOUT_MEMBERS: "TimeoutMembers",
+    MANAGE_MESSAGES: "ManageMessages",
+    MUTE_MEMBERS: "MuteMembers",
+    DEAFEN_MEMBERS: "DeafenMembers",
+    MANAGE_NICKNAMES: "ManageNicknames",
+    MANAGE_ROLES: "ManageRoles",
+    MANAGE_CHANNELS: "ManageChannels",
+    MANAGE_GUILD: "ManageGuild",
+    VIEW_AUDIT_LOG: "ViewAuditLog",
+    SEND_MESSAGES: "SendMessages",
+    READ_MESSAGE_HISTORY: "ReadMessageHistory",
+    CONNECT: "Connect",
+    SPEAK: "Speak",
+    USE_VAD: "UseVad",
+    PRIORITY_SPEAKER: "PrioritySpeaker",
+    STREAM: "Stream",
+    ATTACH_FILES: "AttachFiles",
+    ADD_REACTIONS: "AddReactions",
+    EMBED_LINKS: "EmbedLinks",
+    MENTION_EVERYONE: "MentionEveryone",
+    MANAGE_THREADS: "ManageThreads",
+    CREATE_PUBLIC_THREADS: "CreatePublicThreads",
+    CREATE_PRIVATE_THREADS: "CreatePrivateThreads",
+    USE_EXTERNAL_EMOJIS: "UseExternalEmojis",
+    USE_EXTERNAL_STICKERS: "UseExternalStickers",
+    MANAGE_EVENTS: "ManageEvents",
+    MODERATE_MEMBERS: "ModerateMembers",
   };
 
   /* ================= ACTIONS ================= */
@@ -790,7 +828,7 @@ Izvedene komande: \`${totalCommandsExecuted}\`
       case "create": {
         const name = args[1];
         if (!name) return sendResult(false, "Vpiši ime role!");
-        const colorArg = args.slice(2).find((v) => /^#([0-9A-F]{6})$/i.test(v));
+        let colorArg = args.slice(2).find((v) => /^#([0-9A-F]{6})$/i.test(v));
         const roleOptions = { name, reason: `Ustvaril ${message.author.tag}` };
         if (colorArg) roleOptions.color = parseInt(colorArg.replace("#", ""), 16);
         const role = await message.guild.roles.create(roleOptions);
@@ -820,29 +858,31 @@ Izvedene komande: \`${totalCommandsExecuted}\`
         const permsEmbed = new EmbedBuilder()
           .setTitle("🔐 Role Permissions")
           .setDescription(
-            "Spodaj je seznam najpogosteje uporabljenih Discord dovoljenj.\n" +
-            "Za nastavitev uporabi ukaz:\n\n**`!role setperm @role \"PERMISSION\"`**\n\n" +
-            "Primer:\n`!role setperm @Moderator \"MANAGE_MESSAGES\"`"
+            "Seznam Discord dovoljenj. Za dodajanje: `!role setperm @role \"PERMISSION\"`\nZa odstranjevanje: `!role rperm @role \"PERMISSION\"` ali `all`"
           )
           .addFields(
             {
               name: "🛠️ Moderacija",
-              value: "`KICK_MEMBERS`\n`BAN_MEMBERS`\n`TIMEOUT_MEMBERS`\n`MANAGE_MESSAGES`\n`MANAGE_NICKNAMES`",
+              value:
+                "`KICK_MEMBERS`\n`BAN_MEMBERS`\n`TIMEOUT_MEMBERS`\n`MANAGE_MESSAGES`\n`MUTE_MEMBERS`\n`DEAFEN_MEMBERS`\n`MANAGE_NICKNAMES`",
               inline: true,
             },
             {
-              name: "📂 Upravljanje strežnika",
-              value: "`MANAGE_CHANNELS`\n`MANAGE_ROLES`\n`VIEW_AUDIT_LOG`\n`MANAGE_GUILD`",
+              name: "📂 Strežnik",
+              value:
+                "`MANAGE_ROLES`\n`MANAGE_CHANNELS`\n`MANAGE_GUILD`\n`VIEW_AUDIT_LOG`\n`MANAGE_EVENTS`\n`MODERATE_MEMBERS`",
               inline: true,
             },
             {
               name: "💬 Besedilo & Voice",
-              value: "`SEND_MESSAGES`\n`READ_MESSAGE_HISTORY`\n`CONNECT`\n`SPEAK`\n`MUTE_MEMBERS`\n`DEAFEN_MEMBERS`",
+              value:
+                "`SEND_MESSAGES`\n`READ_MESSAGE_HISTORY`\n`CONNECT`\n`SPEAK`\n`USE_VAD`\n`PRIORITY_SPEAKER`\n`STREAM`",
               inline: true,
             },
             {
-              name: "⚠️ Opozorilo",
-              value: "Permissioni **niso case-sensitive**, vendar morajo biti pravilno zapisani.\nPriporočeno: **kopiraj / prilepi** iz seznama zgoraj.",
+              name: "📎 Dodatno",
+              value:
+                "`ATTACH_FILES`\n`ADD_REACTIONS`\n`EMBED_LINKS`\n`MENTION_EVERYONE`\n`MANAGE_THREADS`\n`CREATE_PUBLIC_THREADS`\n`CREATE_PRIVATE_THREADS`\n`USE_EXTERNAL_EMOJIS`\n`USE_EXTERNAL_STICKERS`",
             }
           )
           .setColor("#F1C40F")
@@ -853,37 +893,45 @@ Izvedene komande: \`${totalCommandsExecuted}\`
       }
 
       case "setperm": {
-  const role = message.mentions.roles.first();
-  if (!role) return sendResult(false, "Označi role!");
+        const role = message.mentions.roles.first();
+        if (!role) return sendResult(false, "Označi role!");
+        let permRaw = args.slice(2).join(" ").replace(/"/g, "").toUpperCase();
+        const perm = PERM_MAP[permRaw];
+        if (!perm) return sendResult(false, `Neveljaven permission: **${permRaw}**`);
+        if (role.position >= botMember.roles.highest.position)
+          return sendResult(false, `Bot ne more urejati role **${role.name}**`);
+        await role.setPermissions([...role.permissions.toArray(), perm]);
+        await handleRoleAction(
+          "🔐 Permission dodan",
+          `Role **${role.name}** je bil dodan permission:\n**${perm}**\nDodajal: ${message.author.tag}`,
+        );
+        break;
+      }
 
-  // Združimo vse argumente po role in odstranimo narekovaje
-  let permInput = args.slice(2).join(" ").replace(/"/g, "").toLowerCase();
-
-  if (!permInput) return sendResult(false, "Vpiši permission!");
-
-  // Pretvori iz UNDER_SCORE v camelCase (DEAFEN_MEMBERS -> DeafenMembers)
-  permInput = permInput
-    .split("_")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-    .join("");
-
-  // Preveri, če obstaja v PermissionsBitField.Flags
-  if (!PermissionsBitField.Flags[permInput])
-    return sendResult(false, `Neveljaven permission: **${permInput}**`);
-
-  if (role.position >= botMember.roles.highest.position)
-    return sendResult(false, `Bot ne more urejati role **${role.name}**`);
-
-  // Dodamo permission (obstoječe ostanejo)
-  await role.setPermissions([...role.permissions.toArray(), permInput]);
-
-  await handleRoleAction(
-    "🔐 Permission dodan",
-    `Role **${role.name}** je bil dodan permission:\n**${permInput}**\n\nDodajal: ${message.author.tag}`,
-  );
-
-  break;
-}
+      case "rperm": {
+        const role = message.mentions.roles.first();
+        if (!role) return sendResult(false, "Označi role!");
+        let permRaw = args.slice(2).join(" ").replace(/"/g, "").toUpperCase();
+        if (permRaw === "ALL") {
+          await role.setPermissions([]);
+          await handleRoleAction(
+            "🗑️ Vsi permissioni odstranjeni",
+            `Vsi permissioni role **${role.name}** so bili odstranjeni.\nOdstranil: ${message.author.tag}`,
+            "#FF5555"
+          );
+          break;
+        }
+        const perm = PERM_MAP[permRaw];
+        if (!perm) return sendResult(false, `Neveljaven permission: **${permRaw}**`);
+        const updatedPerms = role.permissions.toArray().filter((p) => p !== perm);
+        await role.setPermissions(updatedPerms);
+        await handleRoleAction(
+          "❌ Permission odstranjen",
+          `Permission **${perm}** odstranjen iz role **${role.name}**\nOdstranil: ${message.author.tag}`,
+          "#FF5555"
+        );
+        break;
+      }
 
       default:
         return sendResult(false, "Neznan podukaz za role!");
@@ -893,6 +941,7 @@ Izvedene komande: \`${totalCommandsExecuted}\`
     await sendResult(false, `Prišlo je do napake: ${err.message}`);
   }
 }
+
 
   // ---------------- Channel ukazi z logiranjem ---------------- LOGI DODANI
   else if (command === "channel") {
