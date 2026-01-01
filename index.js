@@ -804,6 +804,129 @@ else if (command === "role") {
   }
 
   /* ================= PERMS LIST ================= */
+  // ---------------- COMMAND: ROLE ----------------
+else if (command === "role") {
+  if (!message.guild) return;
+
+  const sub = args[0]?.toLowerCase();
+  const botMember = message.guild.members.me;
+
+  /* ================= PERMISSION CHECK ================= */
+  const hasPermission =
+    ROLE_WHITELIST.includes(message.author.id) ||
+    message.author.id === message.guild.ownerId ||
+    message.member.permissions.has(PermissionsBitField.Flags.ManageRoles);
+
+  /* ================= PERMISSION MAP ================= */
+  const PERM_MAP = {
+    // Moderation
+    KICK_MEMBERS: PermissionsBitField.Flags.KickMembers,
+    BAN_MEMBERS: PermissionsBitField.Flags.BanMembers,
+    MODERATE_MEMBERS: PermissionsBitField.Flags.ModerateMembers,
+    MANAGE_MESSAGES: PermissionsBitField.Flags.ManageMessages,
+    MANAGE_NICKNAMES: PermissionsBitField.Flags.ManageNicknames,
+
+    // Roles & Server
+    MANAGE_ROLES: PermissionsBitField.Flags.ManageRoles,
+    MANAGE_CHANNELS: PermissionsBitField.Flags.ManageChannels,
+    MANAGE_GUILD: PermissionsBitField.Flags.ManageGuild,
+    VIEW_AUDIT_LOG: PermissionsBitField.Flags.ViewAuditLog,
+    MANAGE_EVENTS: PermissionsBitField.Flags.ManageEvents,
+
+    // Voice
+    CONNECT: PermissionsBitField.Flags.Connect,
+    SPEAK: PermissionsBitField.Flags.Speak,
+    MUTE_MEMBERS: PermissionsBitField.Flags.MuteMembers,
+    DEAFEN_MEMBERS: PermissionsBitField.Flags.DeafenMembers,
+    MOVE_MEMBERS: PermissionsBitField.Flags.MoveMembers,
+    PRIORITY_SPEAKER: PermissionsBitField.Flags.PrioritySpeaker,
+    STREAM: PermissionsBitField.Flags.Stream,
+
+    // Text
+    SEND_MESSAGES: PermissionsBitField.Flags.SendMessages,
+    READ_MESSAGE_HISTORY: PermissionsBitField.Flags.ReadMessageHistory,
+    ADD_REACTIONS: PermissionsBitField.Flags.AddReactions,
+    ATTACH_FILES: PermissionsBitField.Flags.AttachFiles,
+    EMBED_LINKS: PermissionsBitField.Flags.EmbedLinks,
+    USE_EXTERNAL_EMOJIS: PermissionsBitField.Flags.UseExternalEmojis,
+    USE_EXTERNAL_STICKERS: PermissionsBitField.Flags.UseExternalStickers,
+    MENTION_EVERYONE: PermissionsBitField.Flags.MentionEveryone,
+
+    // Threads
+    CREATE_PUBLIC_THREADS: PermissionsBitField.Flags.CreatePublicThreads,
+    CREATE_PRIVATE_THREADS: PermissionsBitField.Flags.CreatePrivateThreads,
+    MANAGE_THREADS: PermissionsBitField.Flags.ManageThreads,
+
+    // Custom / Virtual
+    DISPLAY: "DISPLAY",
+  };
+
+  const ALL_PERMS = [
+    // Moderation
+    PermissionsBitField.Flags.KickMembers,
+    PermissionsBitField.Flags.BanMembers,
+    PermissionsBitField.Flags.ModerateMembers,
+    PermissionsBitField.Flags.ManageMessages,
+    PermissionsBitField.Flags.ManageNicknames,
+    
+    // Roles & Server
+    PermissionsBitField.Flags.ManageRoles,
+    PermissionsBitField.Flags.ManageChannels,
+    PermissionsBitField.Flags.ManageGuild,
+    PermissionsBitField.Flags.ViewAuditLog,
+    PermissionsBitField.Flags.ManageEvents,
+    
+    // Voice
+    PermissionsBitField.Flags.Connect,
+    PermissionsBitField.Flags.Speak,
+    PermissionsBitField.Flags.MuteMembers,
+    PermissionsBitField.Flags.DeafenMembers,
+    PermissionsBitField.Flags.MoveMembers,
+    PermissionsBitField.Flags.PrioritySpeaker,
+    PermissionsBitField.Flags.Stream,
+    
+    // Text
+    PermissionsBitField.Flags.SendMessages,
+    PermissionsBitField.Flags.ReadMessageHistory,
+    PermissionsBitField.Flags.AddReactions,
+    PermissionsBitField.Flags.AttachFiles,
+    PermissionsBitField.Flags.EmbedLinks,
+    PermissionsBitField.Flags.UseExternalEmojis,
+    PermissionsBitField.Flags.UseExternalStickers,
+    PermissionsBitField.Flags.MentionEveryone,
+    
+    // Threads
+    PermissionsBitField.Flags.CreatePublicThreads,
+    PermissionsBitField.Flags.CreatePrivateThreads,
+    PermissionsBitField.Flags.ManageThreads,
+  ];
+
+  /* ================= HELP ================= */
+  if (sub === "help") {
+    const embed = new EmbedBuilder()
+      .setTitle("📖 Role Komande")
+      .setDescription("Seznam vseh `!role` podukazov:")
+      .addFields(
+        { name: "!role add @user @role", value: "Doda role uporabniku" },
+        { name: "!role remove @user @role", value: "Odstrani role uporabniku" },
+        { name: "!role create <ime> [#barva]", value: "Ustvari novo role" },
+        { name: "!role delete @role", value: "Izbriše role" },
+        { name: "!role deleteall", value: "Izbriše vse role (razen bota/ownerja)" },
+        { name: "!role perms", value: "Prikaže vse permissione" },
+        { name: "!role dperm @role", value: "Prikaže permissione role" },
+        { name: "!role setperm @role PERM", value: "Doda permission role" },
+        { name: "!role setperm @role all", value: "Doda VSE permissione in DISPLAY" },
+        { name: "!role rperm @role PERM", value: "Odstrani permission" },
+        { name: "!role rperm @role all", value: "Odstrani vse permissione in DISPLAY" },
+        { name: "!role setperm @role DISPLAY", value: "Prikaže role ločeno od ostalih članov" },
+        { name: "!role rperm @role DISPLAY", value: "Odstrani ločeno prikazovanje" },
+      )
+      .setColor("#2ECC71");
+
+    return message.channel.send({ embeds: [embed] });
+  }
+
+  /* ================= PERMS LIST ================= */
   if (sub === "perms") {
     const embed = new EmbedBuilder()
       .setTitle("🔐 Role Permissions")
@@ -916,7 +1039,8 @@ else if (command === "role") {
 
       case "rperm": {
         const role = message.mentions.roles.first();
-        const permRaw = args.slice(2).join(" ").toUpperCase();
+        // Odstrani narekovaje iz argumenta
+        const permRaw = args.slice(2).join(" ").replace(/"/g, "").toUpperCase();
         if (!role) throw "Označi role!";
 
         if (permRaw === "ALL") {
@@ -938,7 +1062,8 @@ else if (command === "role") {
         const role = message.mentions.roles.first();
         if (!role) throw "Označi role!";
 
-        const rolePerms = role.permissions.toArray();
+        // role.permissions je PermissionsBitField objekt, ne array!
+        const rolePerm = role.permissions;
         const isHoisted = role.hoist;
 
         // Categorize permissions
@@ -1020,10 +1145,10 @@ else if (command === "role") {
           .setColor(role.color || "#5865F2")
           .setDescription(`**Role ID:** ${role.id}\n**Barva:** ${role.hexColor}\n**Mentionable:** ${role.mentionable ? "✅" : "❌"}`);
 
-        // Add permissions by category
+        // Add permissions by category - uporabi .has() metodo!
         let hasAnyPerms = false;
         for (const [category, perms] of Object.entries(categories)) {
-          const activePerms = perms.filter(p => rolePerms.includes(p));
+          const activePerms = perms.filter(p => rolePerm.has(p));
           if (activePerms.length > 0) {
             hasAnyPerms = true;
             const permList = activePerms.map(p => `✅ ${permNameMap[p]}`).join("\n");
@@ -1063,7 +1188,6 @@ else if (command === "role") {
     });
   }
 }
-
 
   // ---------------- Channel ukazi z logiranjem ---------------- LOGI DODANI
   else if (command === "channel") {
