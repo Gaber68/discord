@@ -791,64 +791,105 @@ Izvedene komande: \`${totalCommandsExecuted}\`
       }
 
       case "delete": {
-        const roleArg = args[1]?.toLowerCase();
+  const roleArg = args[1]?.toLowerCase();
 
-        // DELETE ALL
-        if (roleArg === "all") {
-          const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
-          const row = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId("confirmDeleteAll").setLabel("✅ Da").setStyle(ButtonStyle.Success),
-            new ButtonBuilder().setCustomId("cancelDeleteAll").setLabel("❌ Ne").setStyle(ButtonStyle.Danger)
-          );
+  if (roleArg === "all") {
+    const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 
-          const confirmEmbed = new EmbedBuilder()
-            .setTitle("⚠️ Potrditev")
-            .setDescription("Ali si prepričan, da želiš izbrisati **vse role**?\nBot bo preskočil role, ki jih ne more izbrisati.")
-            .setColor("#FF5555");
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId("confirmDeleteAll").setLabel("✅ Da").setStyle(ButtonStyle.Success),
+      new ButtonBuilder().setCustomId("cancelDeleteAll").setLabel("❌ Ne").setStyle(ButtonStyle.Danger)
+    );
 
-          const confirmMessage = await message.channel.send({ embeds: [confirmEmbed], components: [row] });
+    const confirmEmbed = new EmbedBuilder()
+      .setTitle("⚠️ Potrditev")
+      .setDescription("Ali si prepričan, da želiš izbrisati **vse role**?\nBot bo preskočil role, ki jih ne more izbrisati.")
+      .setColor("#FF5555");
 
-          const collector = confirmMessage.createMessageComponentCollector({ time: 30000 });
+    const confirmMessage = await message.channel.send({ embeds: [confirmEmbed], components: [row] });
 
-          collector.on("collect", async (i) => {
-            if (i.user.id !== message.author.id)
-              return i.reply({ content: "To ni tvoja potrditev!", ephemeral: true });
+    const collector = confirmMessage.createMessageComponentCollector({ time: 30000 });
 
-            if (i.customId === "cancelDeleteAll") {
-              await i.update({ content: "✅ Opravljeno (preklicano)", embeds: [], components: [] });
-              await logAction(message.guild, "❌ Delete All Cancelled", `Uporabnik ${i.user.tag} je preklical brisanje vseh rol`, "#FF5555");
-              collector.stop();
-              return;
-            }
+    collector.on("collect", async (i) => {
+      if (i.user.id !== message.author.id)
+        return i.reply({ content: "To ni tvoja potrditev!", ephemeral: true });
 
-            if (i.customId === "confirmDeleteAll") {
-              await i.update({ components: [] });
+      // Če uporabnik klikne NE
+      if (i.customId === "cancelDeleteAll") {
+        const cancelEmbed = new EmbedBuilder()
+          .setTitle("❌ Opravljeno (preklicano)")
+          .setDescription(`Uporabnik **${i.user.tag}** je preklical brisanje vseh rol`)
+          .setColor("#FF5555")
+          .setTimestamp();
 
-              let deletedCount = 0;
-              let skippedRoles = [];
-              const roles = message.guild.roles.cache
-                .filter(r => r.position < botMember.roles.highest.position && !r.managed && r.id !== message.guild.id)
-                .sort((a, b) => b.position - a.position);
+        await message.channel.send({ embeds: [cancelEmbed] });
+        await logAction(message.guild, "❌ Delete All Cancelled", `Uporabnik ${i.user.tag} je preklical brisanje vseh rol`, "#FF5555");
+        await confirmMessage.delete().catch(() => {});
+        collector.stop();
+        return;
+      }
 
-              for (const r of roles.values()) {
-                try {
-                  await r.delete(`Deleted by ${message.author.tag} via !role delete all`);
-                  deletedCount++;
-                } catch {
-                  skippedRoles.push(r.name);
-                }
-              }
+      // Če uporabnik klikne DA
+      if (i.customId === "confirmDeleteAll") {
+        await confirmMessage.delete().catch(() => {}); // zbriše gumb + embed
 
-              await logAction(
-                message.guild,
-                "🗑️ Delete All Roles",
-                `Izbrisal: ${deletedCount} role\nPreskočeno: ${skippedRoles.length}\nPreskočene: ${skippedRoles.join(", ")}`,
-                "#FF5555"
-              );
+        let deletedCount = 0;
+        let skippedRoles = [];
+        const roles = message.guild.roles.cache
+          .filter(r => r.position < botMember.roles.highest.position && !r.managed && r.id !== message.guild.id)
+          .sort((a, b) => b.position - a.position);
 
-              await sendResult(true, `Izbrisano: **${deletedCount}** role\nPreskočeno: **${skippedRoles.length}** role${skippedRoles.length > 0 ? `\nPreskočene: ${skippedRoles.join(", ")}` : ""}`);
-              collector.stop();
-            }
+        for (const r of roles.values()) {
+          try {
+            await r.delete(`Deleted by ${message.author.tag} via !role delete all`);
+            deletedCount++;
+          } catch {
+            skippedRoles.push(r.name);
+          }
+        }
+
+        const resultEmbed = new EmbedBuilder()
+          .setTitle("🗑️ Opravljeno")
+          .setDescription(`Izbrisano: **${deletedCount}** role\nPreskočeno: **${skippedRoles.length}** role`)
+          .setColor("#57F287")
+          .setFooter({ text: `Izvedel: ${message.author.tag}` })
+          .setTimestamp();
+
+        if (skippedRoles.length > 0)
+          resultEmbed.addFields({ name: "Preskočene role", value: skippedRoles.join(", ") });
+
+        await message.channel.send({ embeds: [resultEmbed] });
+
+        await logAction(
+          message.guild,
+          "🗑️ Delete All Roles",
+          `Izbrisal: ${deletedCount} role\nPreskočeno: ${skippedRoles.length}\nPreskočene: ${skippedRoles.join(", ")}`,
+          "#FF5555"
+        );
+
+        collector.stop();
+      }
+    });
+
+    collector.on("end", async () => {
+      // Samo odstrani gumbe če še obstajajo
+      if (!confirmMessage.deleted && confirmMessage.editable)
+        await confirmMessage.edit({ components: [] });
+    });
+
+    break;
+  }
+
+  // DELETE SINGLE ROLE
+  const role = message.mentions.roles.first();
+  if (!role) return sendResult(false, "Označi role za brisanje!");
+  if (role.position >= botMember.roles.highest.position)
+    return sendResult(false, `Bot ne more izbrisati role **${role.name}**`);
+
+  await role.delete(`Deleted by ${message.author.tag} via !role delete`);
+  await handleRoleAction("🗑️ Role izbrisana", `Role **${role.name}** izbrisal: ${message.author.tag}`, "#FF5555");
+  break;
+}
           });
 
           collector.on("end", async () => {
