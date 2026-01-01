@@ -681,123 +681,178 @@ Izvedene komande: \`${totalCommandsExecuted}\`
 
   // ---------------- Role ukazi z logiranjem ---------------- LOGI DODANI
   else if (command === "role") {
-    if (!message.guild) return;
+  if (!message.guild) return;
 
-    const sub = args[0]?.toLowerCase();
-    const botMember = message.guild.members.me;
+  const sub = args[0]?.toLowerCase();
 
-    const hasPermission =
-      message.member.permissions.has(PermissionsBitField.Flags.ManageRoles) ||
-      ROLE_WHITELIST.includes(message.author.id) ||
-      message.author.id === message.guild.ownerId;
+  /* ================= HELP (BREZ DOVOLJENJ) ================= */
+  if (sub === "help") {
+    const helpEmbed = new EmbedBuilder()
+      .setTitle("📖 Role Komande")
+      .setDescription("Seznam vseh podukazov za `!role`:")
+      .addFields(
+        {
+          name: "!role add @uporabnik @role",
+          value:
+            "Doda role uporabniku.\n" +
+            "**Primer:** `!role add @Janez @Moderator`",
+        },
+        {
+          name: "!role remove @uporabnik @role",
+          value:
+            "Odstrani role uporabniku.\n" +
+            "**Primer:** `!role remove @Janez @Moderator`",
+        },
+        {
+          name: "!role create <ime> [#barva]",
+          value:
+            "Ustvari novo role.\n" +
+            "**Primer:** `!role create VIP #FFD700`",
+        },
+        {
+          name: "!role delete @role",
+          value:
+            "Izbriše role.\n" +
+            "**Primer:** `!role delete @VIP`",
+        },
+        {
+          name: "!role help",
+          value: "Prikaže to pomoč.",
+        }
+      )
+      .setColor("#02B025")
+      .setTimestamp()
+      .setFooter({ text: `Requested by ${message.author.tag}` });
 
-    if (!hasPermission) {
-      return sendEmbed(
+    return message.channel.send({ embeds: [helpEmbed] });
+  }
+
+  const botMember = message.guild.members.me;
+
+  const hasPermission =
+    message.member.permissions.has(PermissionsBitField.Flags.ManageRoles) ||
+    ROLE_WHITELIST.includes(message.author.id) ||
+    message.author.id === message.guild.ownerId;
+
+  if (!hasPermission) {
+    return sendEmbed(
+      message.channel,
+      "❌ Napaka",
+      "Nimaš dovoljenja!",
+      "#FF5555",
+    );
+  }
+
+  /* ================= POMOŽNE FUNKCIJE ================= */
+  const sendResult = async (success = true, text) => {
+    const description = text && text.length > 0 ? text : " ";
+    if (success) {
+      await sendEmbed(
+        message.channel,
+        "✅ Opravljeno",
+        description,
+        "#57F287",
+      );
+    } else {
+      await sendEmbed(
         message.channel,
         "❌ Napaka",
-        "Nimaš dovoljenja!",
+        description,
         "#FF5555",
       );
     }
+  };
 
-    // Funkcija pošilja samo "Opravljeno" ali napako v kanal komande
-    const sendResult = async (success = true, text) => {
-      const description = text && text.length > 0 ? text : " ";
-      if (success) {
-        await sendEmbed(
-          message.channel,
-          "✅ Opravljeno",
-          description,
-          "#57F287",
+  const handleRoleAction = async (title, description, color = "#02B025") => {
+    await logAction(message.guild, title, description, color);
+    await sendResult();
+  };
+
+  /* ================= ACTIONS ================= */
+  try {
+    switch (sub) {
+      case "add": {
+        const member = message.mentions.members.first();
+        const role = message.mentions.roles.first();
+        if (!member || !role)
+          return sendResult(false, "Označi uporabnika in role!");
+
+        await member.roles.add(role);
+        await handleRoleAction(
+          "➕ Role dodana",
+          `Role **${role.name}** dodana uporabniku **${member.user.tag}**\nDodajal: ${message.author.tag}`,
         );
-      } else {
-        await sendEmbed(message.channel, "❌ Napaka", description, "#FF5555");
+        break;
       }
-    };
 
-    const handleRoleAction = async (title, description, color = "#00FF99") => {
-      // Logiramo v log kanal
-      await logAction(message.guild, title, description, color);
-      // V kanal komande pošljemo samo opravljeno
-      await sendResult();
-    };
+      case "remove": {
+        const member = message.mentions.members.first();
+        const role = message.mentions.roles.first();
+        if (!member || !role)
+          return sendResult(false, "Označi uporabnika in role!");
 
-    try {
-      switch (sub) {
-        case "add": {
-          const member = message.mentions.members.first();
-          const role = message.mentions.roles.first();
-          if (!member || !role)
-            return sendResult(false, "Označi uporabnika in role!");
-
-          await member.roles.add(role);
-          await handleRoleAction(
-            "➕ Role dodana",
-            `Role **${role.name}** dodana uporabniku **${member.user.tag}**\nDodajal: ${message.author.tag}`,
-          );
-          break;
-        }
-        case "remove": {
-          const member = message.mentions.members.first();
-          const role = message.mentions.roles.first();
-          if (!member || !role)
-            return sendResult(false, "Označi uporabnika in role!");
-
-          await member.roles.remove(role);
-          await handleRoleAction(
-            "➖ Role odstranjena",
-            `Role **${role.name}** odstranjena uporabniku **${member.user.tag}**\nOdstranil: ${message.author.tag}`,
-          );
-          break;
-        }
-        case "create": {
-          const name = args[1];
-          if (!name) return sendResult(false, "Vpiši ime role!");
-
-          let colorArg = args.slice(2).find((v) => /^#([0-9A-F]{6})$/i.test(v));
-          const roleOptions = {
-            name,
-            reason: `Ustvaril ${message.author.tag}`,
-          };
-          if (colorArg)
-            roleOptions.color = parseInt(colorArg.replace("#", ""), 16);
-
-          const role = await message.guild.roles.create(roleOptions);
-          await role.setPosition(botMember.roles.highest.position - 1);
-
-          await handleRoleAction(
-            "🆕 Role ustvarjena",
-            `**${role.name}**\nUstvaril: ${message.author.tag}`,
-          );
-          break;
-        }
-        case "delete": {
-          const role = message.mentions.roles.first();
-          if (!role) return sendResult(false, "Označi role za brisanje!");
-          if (role.position >= botMember.roles.highest.position)
-            return sendResult(
-              false,
-              `Bot ne more izbrisati role **${role.name}**`,
-            );
-
-          await role.delete(
-            `Deleted by ${message.author.tag} via !role delete`,
-          );
-          await handleRoleAction(
-            "🗑️ Role izbrisana",
-            `Role **${role.name}** izbrisal: ${message.author.tag}`,
-            "#FF5555",
-          );
-          break;
-        }
-        default:
-          return sendResult(false, "Neznan podukaz za role!");
+        await member.roles.remove(role);
+        await handleRoleAction(
+          "➖ Role odstranjena",
+          `Role **${role.name}** odstranjena uporabniku **${member.user.tag}**\nOdstranil: ${message.author.tag}`,
+        );
+        break;
       }
-    } catch (err) {
-      console.error(err);
-      await sendResult(false, `Prišlo je do napake: ${err.message}`);
+
+      case "create": {
+        const name = args[1];
+        if (!name) return sendResult(false, "Vpiši ime role!");
+
+        let colorArg = args
+          .slice(2)
+          .find((v) => /^#([0-9A-F]{6})$/i.test(v));
+
+        const roleOptions = {
+          name,
+          reason: `Ustvaril ${message.author.tag}`,
+        };
+
+        if (colorArg)
+          roleOptions.color = parseInt(colorArg.replace("#", ""), 16);
+
+        const role = await message.guild.roles.create(roleOptions);
+        await role.setPosition(botMember.roles.highest.position - 1);
+
+        await handleRoleAction(
+          "🆕 Role ustvarjena",
+          `**${role.name}**\nUstvaril: ${message.author.tag}`,
+        );
+        break;
+      }
+
+      case "delete": {
+        const role = message.mentions.roles.first();
+        if (!role) return sendResult(false, "Označi role za brisanje!");
+        if (role.position >= botMember.roles.highest.position)
+          return sendResult(
+            false,
+            `Bot ne more izbrisati role **${role.name}**`,
+          );
+
+        await role.delete(
+          `Deleted by ${message.author.tag} via !role delete`,
+        );
+        await handleRoleAction(
+          "🗑️ Role izbrisana",
+          `Role **${role.name}** izbrisal: ${message.author.tag}`,
+          "#FF5555",
+        );
+        break;
+      }
+
+      default:
+        return sendResult(false, "Neznan podukaz za role!");
     }
+  } catch (err) {
+    console.error(err);
+    await sendResult(false, `Prišlo je do napake: ${err.message}`);
   }
+}
 
   // ---------------- Channel ukazi z logiranjem ---------------- LOGI DODANI
   else if (command === "channel") {
@@ -1643,15 +1698,33 @@ if (command === "unwarn") {
 
   // Če uporabnik napiše samo !rename help
   if (args[0]?.toLowerCase() === "help") {
-    return sendEmbed(
-      message.channel,
-      "Rename Komanda - Pomoč",
-      "**!rename @user \"novo_ime\"** - spremeni nickname uporabnika.\n" +
-      "**!rename @user reset** - resetira nickname uporabnika.\n" +
-      "**!rename help** - pokaže to sporočilo.",
-      "#5865F2"
-    );
-  }
+  const helpEmbed = new EmbedBuilder()
+    .setTitle("📖 Rename Komande")
+    .setDescription("Seznam vseh podukazov za `!rename`:")
+    .addFields(
+      {
+        name: "!rename @uporabnik \"novo_ime\"",
+        value:
+          "Spremeni nickname uporabnika.\n" +
+          "**Primer:** `!rename @Janez \"Admin Janez\"`",
+      },
+      {
+        name: "!rename @uporabnik reset",
+        value:
+          "Ponastavi (resetira) nickname uporabnika.\n" +
+          "**Primer:** `!rename @Janez reset`",
+      },
+      {
+        name: "!rename help",
+        value: "Prikaže to pomoč.",
+      }
+    )
+    .setColor("#02B025")
+    .setTimestamp()
+    .setFooter({ text: `Requested by ${message.author.tag}` });
+
+  return message.channel.send({ embeds: [helpEmbed] });
+}
 
   if (!member) return sendEmbed(message.channel, "Napaka", "Označi uporabnika!", "#FF5555");
 
