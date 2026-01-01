@@ -689,13 +689,13 @@ else if (command === "role") {
   const sub = args[0]?.toLowerCase();
   const botMember = message.guild.members.me;
 
-  // ---------------- PERMISSION CHECK ----------------
+  /* ================= PERMISSION CHECK ================= */
   const hasPermission =
     ROLE_WHITELIST.includes(message.author.id) ||
     message.author.id === message.guild.ownerId ||
     message.member.permissions.has(PermissionsBitField.Flags.ManageRoles);
 
-  // ---------------- PERMISSION MAP ----------------
+  /* ================= PERMISSION MAP ================= */
   const PERM_MAP = {
     // Moderation
     KICK_MEMBERS: PermissionsBitField.Flags.KickMembers,
@@ -734,11 +734,14 @@ else if (command === "role") {
     CREATE_PUBLIC_THREADS: PermissionsBitField.Flags.CreatePublicThreads,
     CREATE_PRIVATE_THREADS: PermissionsBitField.Flags.CreatePrivateThreads,
     MANAGE_THREADS: PermissionsBitField.Flags.ManageThreads,
+
+    // Custom / Virtual
+    DISPLAY: "DISPLAY", // loči role v member listi
   };
 
-  const ALL_PERMS = Object.values(PERM_MAP);
+  const ALL_PERMS = Object.values(PERM_MAP).filter(p => typeof p === "number");
 
-  // ---------------- HELP ----------------
+  /* ================= HELP ================= */
   if (sub === "help") {
     const embed = new EmbedBuilder()
       .setTitle("📖 Role Komande")
@@ -748,18 +751,21 @@ else if (command === "role") {
         { name: "!role remove @user @role", value: "Odstrani role uporabniku" },
         { name: "!role create <ime> [#barva]", value: "Ustvari novo role" },
         { name: "!role delete @role", value: "Izbriše role" },
+        { name: "!role delete all", value: "Izbriše vse role (razen bota/ownerja)" },
         { name: "!role perms", value: "Prikaže vse permissione" },
         { name: "!role setperm @role PERM", value: "Doda permission role" },
         { name: "!role setperm @role all", value: "Doda VSE permissione" },
         { name: "!role rperm @role PERM", value: "Odstrani permission" },
         { name: "!role rperm @role all", value: "Odstrani VSE permissione" },
+        { name: "!role setperm @role DISPLAY", value: "Prikaže role ločeno od ostalih članov" },
+        { name: "!role rperm @role DISPLAY", value: "Odstrani ločeno prikazovanje" },
       )
       .setColor("#2ECC71");
 
     return message.channel.send({ embeds: [embed] });
   }
 
-  // ---------------- PERMS LIST ----------------
+  /* ================= PERMS LIST ================= */
   if (sub === "perms") {
     const embed = new EmbedBuilder()
       .setTitle("🔐 Role Permissions")
@@ -769,13 +775,14 @@ else if (command === "role") {
         { name: "🔊 Voice", value: "`CONNECT`\n`SPEAK`\n`MUTE_MEMBERS`\n`DEAFEN_MEMBERS`\n`MOVE_MEMBERS`", inline: true },
         { name: "⚙️ Server", value: "`MANAGE_ROLES`\n`MANAGE_CHANNELS`\n`MANAGE_GUILD`\n`VIEW_AUDIT_LOG`", inline: true },
         { name: "💬 Text", value: "`SEND_MESSAGES`\n`EMBED_LINKS`\n`ATTACH_FILES`\n`MENTION_EVERYONE`", inline: true },
+        { name: "✨ Special", value: "`DISPLAY` — prikazuje role ločeno od ostalih članov", inline: true },
       )
       .setColor("#F1C40F");
 
     return message.channel.send({ embeds: [embed] });
   }
 
-  // ---------------- BLOCK IF NO PERMISSION ----------------
+  /* ================= BLOCK ================= */
   if (!hasPermission) {
     return message.channel.send({
       embeds: [
@@ -787,9 +794,10 @@ else if (command === "role") {
     });
   }
 
-  // ---------------- ACTIONS ----------------
+  /* ================= ACTIONS ================= */
   try {
     switch (sub) {
+      // Add role to member
       case "add": {
         const member = message.mentions.members.first();
         const role = message.mentions.roles.first();
@@ -798,6 +806,7 @@ else if (command === "role") {
         break;
       }
 
+      // Remove role from member
       case "remove": {
         const member = message.mentions.members.first();
         const role = message.mentions.roles.first();
@@ -806,6 +815,71 @@ else if (command === "role") {
         break;
       }
 
+      // Create role
+      case "create": {
+        const roleName = args[1];
+        if (!roleName) throw "Daj ime za novo role!";
+
+        const colorArg = args[2] || "#2F3136";
+
+        const newRole = await message.guild.roles.create({
+          name: roleName,
+          color: colorArg,
+          hoist: false,
+          reason: `Created by ${message.author.tag}`,
+        });
+
+        await message.channel.send({
+          embeds: [
+            new EmbedBuilder()
+              .setTitle("✅ Role ustvarjena")
+              .setDescription(`Ustvarjena role: **${newRole.name}**`)
+              .setColor("#57F287"),
+          ],
+        });
+        break;
+      }
+
+      // Delete role
+      case "delete": {
+        if (args[1]?.toLowerCase() === "all") {
+          const rolesToDelete = message.guild.roles.cache.filter(
+            r => !r.managed && r.id !== message.guild.id && r.id !== message.guild.members.me.roles.highest.id
+          );
+
+          let deletedCount = 0;
+          for (const [, role] of rolesToDelete) {
+            try {
+              await role.delete(`Deleted all by ${message.author.tag}`);
+              deletedCount++;
+            } catch {}
+          }
+
+          await message.channel.send({
+            embeds: [
+              new EmbedBuilder()
+                .setTitle("✅ Vse role izbrisane")
+                .setDescription(`Izbrisanih role: **${deletedCount}**`)
+                .setColor("#57F287"),
+            ],
+          });
+        } else {
+          const role = message.mentions.roles.first();
+          if (!role) throw "Označi role za izbris!";
+          await role.delete(`Deleted by ${message.author.tag}`);
+          await message.channel.send({
+            embeds: [
+              new EmbedBuilder()
+                .setTitle("✅ Role izbrisana")
+                .setDescription(`Izbrisana role: **${role.name}**`)
+                .setColor("#57F287"),
+            ],
+          });
+        }
+        break;
+      }
+
+      // Set permission
       case "setperm": {
         const role = message.mentions.roles.first();
         const permRaw = args.slice(2).join(" ").toUpperCase();
@@ -813,14 +887,21 @@ else if (command === "role") {
 
         if (permRaw === "ALL") {
           await role.setPermissions(ALL_PERMS);
+          await role.edit({ hoist: true });
         } else {
           const perm = PERM_MAP[permRaw];
           if (!perm) throw `Neveljaven permission: ${permRaw}`;
-          await role.setPermissions([...new Set([...role.permissions.toArray(), perm])]);
+
+          if (perm === "DISPLAY") {
+            await role.edit({ hoist: true });
+          } else {
+            await role.setPermissions([...new Set([...role.permissions.toArray(), perm])]);
+          }
         }
         break;
       }
 
+      // Remove permission
       case "rperm": {
         const role = message.mentions.roles.first();
         const permRaw = args.slice(2).join(" ").toUpperCase();
@@ -828,10 +909,16 @@ else if (command === "role") {
 
         if (permRaw === "ALL") {
           await role.setPermissions([]);
+          await role.edit({ hoist: false });
         } else {
           const perm = PERM_MAP[permRaw];
           if (!perm) throw `Neveljaven permission: ${permRaw}`;
-          await role.setPermissions(role.permissions.toArray().filter(p => p !== perm));
+
+          if (perm === "DISPLAY") {
+            await role.edit({ hoist: false });
+          } else {
+            await role.setPermissions(role.permissions.toArray().filter(p => p !== perm));
+          }
         }
         break;
       }
@@ -856,7 +943,6 @@ else if (command === "role") {
     });
   }
 }
-
 
 
   // ---------------- Channel ukazi z logiranjem ---------------- LOGI DODANI
