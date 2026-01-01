@@ -284,21 +284,57 @@ Izvedene komande: \`${totalCommandsExecuted}\`
     
   // ---------------- COMMAND: komande ----------------
   if (command === "komande") {
-    const commands = [
-      { name: "ping", description: "Preveri, ali je bot živ." },
-      { name: "zdravo", description: "Pozdravi bota." },
-      { name: "kocka", description: "Vrzi kocko (1-6)." },
-      { name: "zasmej", description: "Dobi smešen 'roast'." },
-      { name: "hack", description: "Ponarejeni 'hack' (šala)." },
-      { name: "komande", description: "Prikaže vse razpoložljive komande." },
-      { name: "log set", description: "Nastavi log kanal" },
-      { name: "role help", description: "Pokaze vse razpoložljive role komande"},
-      { name: "channel help", description: "Pokaze vse razpoložljive channel komande"},
-      { name: "voice help", description: "Pokaze vse razpoložljive voice komande"},
-      { name: "warn help", description: "Pokaze vse razpoložljive warn komande"},
-      { name: "rename help", description: "Pokaze vse razpoložljive rename komande"},
-      { name: "admin", description: "Pokaze vse razpoložljive admin komande" },
-    ];
+  const embed = new EmbedBuilder()
+    .setTitle("🧭 Command Center")
+    .setDescription(
+      "Hiter pregled vseh razpoložljivih ukazov.\n" +
+      "Uporabi navedene ukaze za podrobnejšo pomoč."
+    )
+    .addFields(
+      {
+        name: "🔹 Osnovno",
+        value:
+          "• `!ping` — preveri stanje bota\n" +
+          "• `!zdravo` — pozdravi bota\n" +
+          "• `!kocka` — met kocke (1–6)\n" +
+          "• `!zasmej` — zabavni roast\n" +
+          "• `!hack` — lažni hack (šala)",
+        inline: false,
+      },
+      {
+        name: "🔹 Moderacija",
+        value:
+          "• `!warn help` — opozorila uporabnikom\n" +
+          "• `!rename help` — upravljanje nickname-ov",
+        inline: false,
+      },
+      {
+        name: "🔹 Role & Dovoljenja",
+        value:
+          "• `!role help` — upravljanje rol",
+        inline: false,
+      },
+      {
+        name: "🔹 Kanali & Voice",
+        value:
+          "• `!channel help` — upravljanje kanalov\n" +
+          "• `!voice help` — voice komande",
+        inline: false,
+      },
+      {
+        name: "🔹 Administracija",
+        value:
+          "• `!admin` — admin ukazi\n" +
+          "• `!log set` — nastavi log kanal",
+        inline: false,
+      }
+    )
+    .setColor("#5865F2")
+    .setTimestamp()
+    .setFooter({ text: "Command Overview • hitro & pregledno" });
+
+  return message.channel.send({ embeds: [embed] });
+}
 
     let description = commands
       .map((cmd) => `**!${cmd.name}** - ${cmd.description}`)
