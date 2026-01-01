@@ -686,6 +686,7 @@ Izvedene komande: \`${totalCommandsExecuted}\`
   if (!message.guild) return;
 
   const sub = args[0]?.toLowerCase();
+  const botMember = message.guild.members.me;
 
   /* ================= HELP (BREZ DOVOLJENJ) ================= */
   if (sub === "help") {
@@ -695,27 +696,27 @@ Izvedene komande: \`${totalCommandsExecuted}\`
       .addFields(
         {
           name: "!role add @uporabnik @role",
-          value:
-            "Doda role uporabniku.\n" +
-            "**Primer:** `!role add @Janez @Moderator`",
+          value: "Doda role uporabniku.\n**Primer:** `!role add @Janez @Moderator`",
         },
         {
           name: "!role remove @uporabnik @role",
-          value:
-            "Odstrani role uporabniku.\n" +
-            "**Primer:** `!role remove @Janez @Moderator`",
+          value: "Odstrani role uporabniku.\n**Primer:** `!role remove @Janez @Moderator`",
         },
         {
           name: "!role create <ime> [#barva]",
-          value:
-            "Ustvari novo role.\n" +
-            "**Primer:** `!role create VIP #FFD700`",
+          value: "Ustvari novo role.\n**Primer:** `!role create VIP #FFD700`",
         },
         {
           name: "!role delete @role",
-          value:
-            "Izbriše role.\n" +
-            "**Primer:** `!role delete @VIP`",
+          value: "Izbriše role.\n**Primer:** `!role delete @VIP`",
+        },
+        {
+          name: "!role perms",
+          value: "Prikaže seznam vseh permissionov in navodila.\n**Primer:** `!role perms`",
+        },
+        {
+          name: "!role setperm @role \"PERMISSION\"",
+          value: "Doda permission role.\n**Primer:** `!role setperm @Moderator \"MANAGE_MESSAGES\"`",
         },
         {
           name: "!role help",
@@ -729,8 +730,7 @@ Izvedene komande: \`${totalCommandsExecuted}\`
     return message.channel.send({ embeds: [helpEmbed] });
   }
 
-  const botMember = message.guild.members.me;
-
+  /* ================= PERMISSION CHECK ================= */
   const hasPermission =
     message.member.permissions.has(PermissionsBitField.Flags.ManageRoles) ||
     ROLE_WHITELIST.includes(message.author.id) ||
@@ -749,19 +749,9 @@ Izvedene komande: \`${totalCommandsExecuted}\`
   const sendResult = async (success = true, text) => {
     const description = text && text.length > 0 ? text : " ";
     if (success) {
-      await sendEmbed(
-        message.channel,
-        "✅ Opravljeno",
-        description,
-        "#57F287",
-      );
+      await sendEmbed(message.channel, "✅ Opravljeno", description, "#57F287");
     } else {
-      await sendEmbed(
-        message.channel,
-        "❌ Napaka",
-        description,
-        "#FF5555",
-      );
+      await sendEmbed(message.channel, "❌ Napaka", description, "#FF5555");
     }
   };
 
@@ -776,9 +766,7 @@ Izvedene komande: \`${totalCommandsExecuted}\`
       case "add": {
         const member = message.mentions.members.first();
         const role = message.mentions.roles.first();
-        if (!member || !role)
-          return sendResult(false, "Označi uporabnika in role!");
-
+        if (!member || !role) return sendResult(false, "Označi uporabnika in role!");
         await member.roles.add(role);
         await handleRoleAction(
           "➕ Role dodana",
@@ -790,9 +778,7 @@ Izvedene komande: \`${totalCommandsExecuted}\`
       case "remove": {
         const member = message.mentions.members.first();
         const role = message.mentions.roles.first();
-        if (!member || !role)
-          return sendResult(false, "Označi uporabnika in role!");
-
+        if (!member || !role) return sendResult(false, "Označi uporabnika in role!");
         await member.roles.remove(role);
         await handleRoleAction(
           "➖ Role odstranjena",
@@ -804,22 +790,11 @@ Izvedene komande: \`${totalCommandsExecuted}\`
       case "create": {
         const name = args[1];
         if (!name) return sendResult(false, "Vpiši ime role!");
-
-        let colorArg = args
-          .slice(2)
-          .find((v) => /^#([0-9A-F]{6})$/i.test(v));
-
-        const roleOptions = {
-          name,
-          reason: `Ustvaril ${message.author.tag}`,
-        };
-
-        if (colorArg)
-          roleOptions.color = parseInt(colorArg.replace("#", ""), 16);
-
+        const colorArg = args.slice(2).find((v) => /^#([0-9A-F]{6})$/i.test(v));
+        const roleOptions = { name, reason: `Ustvaril ${message.author.tag}` };
+        if (colorArg) roleOptions.color = parseInt(colorArg.replace("#", ""), 16);
         const role = await message.guild.roles.create(roleOptions);
         await role.setPosition(botMember.roles.highest.position - 1);
-
         await handleRoleAction(
           "🆕 Role ustvarjena",
           `**${role.name}**\nUstvaril: ${message.author.tag}`,
@@ -831,18 +806,66 @@ Izvedene komande: \`${totalCommandsExecuted}\`
         const role = message.mentions.roles.first();
         if (!role) return sendResult(false, "Označi role za brisanje!");
         if (role.position >= botMember.roles.highest.position)
-          return sendResult(
-            false,
-            `Bot ne more izbrisati role **${role.name}**`,
-          );
-
-        await role.delete(
-          `Deleted by ${message.author.tag} via !role delete`,
-        );
+          return sendResult(false, `Bot ne more izbrisati role **${role.name}**`);
+        await role.delete(`Deleted by ${message.author.tag} via !role delete`);
         await handleRoleAction(
           "🗑️ Role izbrisana",
           `Role **${role.name}** izbrisal: ${message.author.tag}`,
           "#FF5555",
+        );
+        break;
+      }
+
+      case "perms": {
+        const permsEmbed = new EmbedBuilder()
+          .setTitle("🔐 Role Permissions")
+          .setDescription(
+            "Spodaj je seznam najpogosteje uporabljenih Discord dovoljenj.\n" +
+            "Za nastavitev uporabi ukaz:\n\n**`!role setperm @role \"PERMISSION\"`**\n\n" +
+            "Primer:\n`!role setperm @Moderator \"MANAGE_MESSAGES\"`"
+          )
+          .addFields(
+            {
+              name: "🛠️ Moderacija",
+              value: "`KICK_MEMBERS`\n`BAN_MEMBERS`\n`TIMEOUT_MEMBERS`\n`MANAGE_MESSAGES`\n`MANAGE_NICKNAMES`",
+              inline: true,
+            },
+            {
+              name: "📂 Upravljanje strežnika",
+              value: "`MANAGE_CHANNELS`\n`MANAGE_ROLES`\n`VIEW_AUDIT_LOG`\n`MANAGE_GUILD`",
+              inline: true,
+            },
+            {
+              name: "💬 Besedilo & Voice",
+              value: "`SEND_MESSAGES`\n`READ_MESSAGE_HISTORY`\n`CONNECT`\n`SPEAK`\n`MUTE_MEMBERS`\n`DEAFEN_MEMBERS`",
+              inline: true,
+            },
+            {
+              name: "⚠️ Opozorilo",
+              value: "Permissioni **niso case-sensitive**, vendar morajo biti pravilno zapisani.\nPriporočeno: **kopiraj / prilepi** iz seznama zgoraj.",
+            }
+          )
+          .setColor("#F1C40F")
+          .setTimestamp()
+          .setFooter({ text: "Role Permissions • Informativni pregled" });
+
+        return message.channel.send({ embeds: [permsEmbed] });
+      }
+
+      case "setperm": {
+        const role = message.mentions.roles.first();
+        const permInput = args.slice(2).join(" ").replace(/"/g, "").toUpperCase();
+        if (!role) return sendResult(false, "Označi role!");
+        if (!permInput) return sendResult(false, "Vpiši permission!");
+        if (!PermissionsBitField.Flags[permInput])
+          return sendResult(false, `Neveljaven permission: **${permInput}**`);
+        if (role.position >= botMember.roles.highest.position)
+          return sendResult(false, `Bot ne more urejati role **${role.name}**`);
+
+        await role.setPermissions([...role.permissions.toArray(), permInput]);
+        await handleRoleAction(
+          "🔐 Permission dodan",
+          `Role **${role.name}** je bil dodan permission:\n**${permInput}**\n\nDodajal: ${message.author.tag}`,
         );
         break;
       }
