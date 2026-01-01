@@ -1018,175 +1018,182 @@ Izvedene komande: \`${totalCommandsExecuted}\`
 
   // ---------------- Voice ukazi z logiranjem ---------------- LOGI DODANI
   else if (command === "voice") {
-    const sub = args[0]?.toLowerCase();
+  const sub = args[0]?.toLowerCase();
 
-    if (!ROLE_WHITELIST.includes(message.author.id))
-      return sendEmbed(
+  if (!ROLE_WHITELIST.includes(message.author.id))
+    return sendEmbed(
+      message.channel,
+      "❌ Napaka",
+      "Nimaš dovoljenja!",
+      "#FF5555",
+    );
+
+  const sendResult = async (success = true, text) => {
+    const description = text && text.length > 0 ? text : " ";
+    if (success) {
+      await sendEmbed(
+        message.channel,
+        "✅ Opravljeno",
+        description,
+        "#57F287",
+      );
+    } else {
+      await sendEmbed(
         message.channel,
         "❌ Napaka",
-        "Nimaš dovoljenja!",
+        description,
         "#FF5555",
       );
-
-    const sendResult = async (success = true, text) => {
-      const description = text && text.length > 0 ? text : " ";
-      if (success) {
-        await sendEmbed(
-          message.channel,
-          "✅ Opravljeno",
-          description,
-          "#57F287",
-        );
-      } else {
-        await sendEmbed(message.channel, "❌ Napaka", description, "#FF5555");
-      }
-    };
-
-    const handleVoiceAction = async (title, description, color = "#00FF99") => {
-      // Dodamo info kdo je sprožil ukaz
-      const fullDescription = `${description}\nIzvedel: ${message.author.tag}`;
-      await logAction(message.guild, title, fullDescription, color);
-      await sendResult();
-    };
-
-    try {
-  switch (sub) {
-    case "help": {
-      const helpEmbed = new EmbedBuilder()
-        .setTitle("📖 Voice Komande")
-        .setDescription("Seznam vseh podukazov za `!voice`:")
-        .addFields(
-          {
-            name: "!voice kick @uporabnik",
-            value:
-              "Odstrani uporabnika iz voice kanala.\n" +
-              "**Primer:** `!voice kick @Janez`",
-          },
-          {
-            name: "!voice move @uporabnik #kanal",
-            value:
-              "Premakne uporabnika v drug voice kanal.\n" +
-              "**Primer:** `!voice move @Janez #Gaming`",
-          },
-          {
-            name: "!voice mute @uporabnik",
-            value:
-              "Utiša uporabnika v voice kanalu.\n" +
-              "**Primer:** `!voice mute @Janez`",
-          },
-          {
-            name: "!voice unmute @uporabnik",
-            value:
-              "Odstrani utišanje uporabniku.\n" +
-              "**Primer:** `!voice unmute @Janez`",
-          },
-          {
-            name: "!voice deafen @uporabnik",
-            value:
-              "Onemogoči zvok uporabniku (deafen).\n" +
-              "**Primer:** `!voice deafen @Janez`",
-          },
-          {
-            name: "!voice undeafen @uporabnik",
-            value:
-              "Ponovno omogoči zvok uporabniku.\n" +
-              "**Primer:** `!voice undeafen @Janez`",
-          },
-          {
-            name: "!voice help",
-            value: "Prikaže to pomoč.",
-          }
-        )
-        .setColor("#02B025")
-        .setTimestamp()
-        .setFooter({ text: `Requested by ${message.author.tag}` });
-
-      return message.channel.send({ embeds: [helpEmbed] });
     }
-  }
-} catch (err) {
-  console.error(err);
-}
+  };
 
-        case "kick":
-        case "move":
-        case "mute":
-        case "unmute":
-        case "deafen":
-        case "undeafen": {
-          const member =
-            message.mentions.members.first() ||
-            message.guild.members.cache.get(args[1]);
-          if (!member || !member.voice.channel)
-            return sendResult(false, "Uporabnik ni v voice kanalu.");
+  const handleVoiceAction = async (title, description, color = "#02B025") => {
+    const fullDescription = `${description}\nIzvedel: ${message.author.tag}`;
+    await logAction(message.guild, title, fullDescription, color);
+    await sendResult(true);
+  };
 
-          switch (sub) {
-            case "kick":
-              await member.voice.disconnect();
-              await handleVoiceAction(
-                "Voice Kick",
-                `${member.user.tag} je bil odstranjen iz voice kanala.`,
-              );
-              break;
-            case "move": {
-              const channel =
-                message.mentions.channels.first() ||
-                message.guild.channels.cache.get(args[2]);
-              if (!channel || channel.type !== 2)
-                return sendResult(
-                  false,
-                  "Moraš označiti veljaven voice kanal.",
-                );
-              await member.voice.setChannel(channel);
-              await handleVoiceAction(
-                "Voice Move",
-                `${member.user.tag} je bil premaknjen v **${channel.name}**.`,
-              );
-              break;
+  try {
+    switch (sub) {
+      /* ================= HELP ================= */
+      case "help": {
+        const helpEmbed = new EmbedBuilder()
+          .setTitle("📖 Voice Komande")
+          .setDescription("Seznam vseh podukazov za `!voice`:")
+          .addFields(
+            {
+              name: "!voice kick @uporabnik",
+              value:
+                "Odstrani uporabnika iz voice kanala.\n" +
+                "**Primer:** `!voice kick @Janez`",
+            },
+            {
+              name: "!voice move @uporabnik #kanal",
+              value:
+                "Premakne uporabnika v drug voice kanal.\n" +
+                "**Primer:** `!voice move @Janez #Gaming`",
+            },
+            {
+              name: "!voice mute @uporabnik",
+              value:
+                "Utiša uporabnika v voice kanalu.\n" +
+                "**Primer:** `!voice mute @Janez`",
+            },
+            {
+              name: "!voice unmute @uporabnik",
+              value:
+                "Odstrani utišanje uporabniku.\n" +
+                "**Primer:** `!voice unmute @Janez`",
+            },
+            {
+              name: "!voice deafen @uporabnik",
+              value:
+                "Onemogoči zvok uporabniku (deafen).\n" +
+                "**Primer:** `!voice deafen @Janez`",
+            },
+            {
+              name: "!voice undeafen @uporabnik",
+              value:
+                "Ponovno omogoči zvok uporabniku.\n" +
+                "**Primer:** `!voice undeafen @Janez`",
+            },
+            {
+              name: "!voice help",
+              value: "Prikaže to pomoč.",
             }
-            case "mute":
-              await member.voice.setMute(true);
-              await handleVoiceAction(
-                "Voice Mute",
-                `${member.user.tag} je bil utišan.`,
-              );
-              break;
-            case "unmute":
-              await member.voice.setMute(false);
-              await handleVoiceAction(
-                "Voice Unmute",
-                `${member.user.tag} ni več utišan.`,
-              );
-              break;
-            case "deafen":
-              await member.voice.setDeaf(true);
-              await handleVoiceAction(
-                "Voice Deafen",
-                `${member.user.tag} je bil deafenan.`,
-              );
-              break;
-            case "undeafen":
-              await member.voice.setDeaf(false);
-              await handleVoiceAction(
-                "Voice Undeafen",
-                `${member.user.tag} ni več deafenan.`,
-              );
-              break;
-          }
-          break;
-        }
+          )
+          .setColor("#02B025")
+          .setTimestamp()
+          .setFooter({ text: `Requested by ${message.author.tag}` });
 
-        default:
-          await sendResult(false, "Neznan podukaz za voice!");
+        return message.channel.send({ embeds: [helpEmbed] });
       }
-    } catch (err) {
-      console.error(err);
-      await sendResult(
-        false,
-        `Prišlo je do napake pri voice ukazu: ${err.message}`,
-      );
+
+      /* ================= ACTIONS ================= */
+      case "kick":
+      case "move":
+      case "mute":
+      case "unmute":
+      case "deafen":
+      case "undeafen": {
+        const member =
+          message.mentions.members.first() ||
+          message.guild.members.cache.get(args[1]);
+
+        if (!member || !member.voice.channel)
+          return sendResult(false, "Uporabnik ni v voice kanalu.");
+
+        switch (sub) {
+          case "kick":
+            await member.voice.disconnect();
+            await handleVoiceAction(
+              "Voice Kick",
+              `${member.user.tag} je bil odstranjen iz voice kanala.`,
+            );
+            break;
+
+          case "move": {
+            const channel =
+              message.mentions.channels.first() ||
+              message.guild.channels.cache.get(args[2]);
+
+            if (!channel || channel.type !== 2)
+              return sendResult(false, "Označiti moraš veljaven voice kanal.");
+
+            await member.voice.setChannel(channel);
+            await handleVoiceAction(
+              "Voice Move",
+              `${member.user.tag} je bil premaknjen v **${channel.name}**.`,
+            );
+            break;
+          }
+
+          case "mute":
+            await member.voice.setMute(true);
+            await handleVoiceAction(
+              "Voice Mute",
+              `${member.user.tag} je bil utišan.`,
+            );
+            break;
+
+          case "unmute":
+            await member.voice.setMute(false);
+            await handleVoiceAction(
+              "Voice Unmute",
+              `${member.user.tag} ni več utišan.`,
+            );
+            break;
+
+          case "deafen":
+            await member.voice.setDeaf(true);
+            await handleVoiceAction(
+              "Voice Deafen",
+              `${member.user.tag} je bil deafenan.`,
+            );
+            break;
+
+          case "undeafen":
+            await member.voice.setDeaf(false);
+            await handleVoiceAction(
+              "Voice Undeafen",
+              `${member.user.tag} ni več deafenan.`,
+            );
+            break;
+        }
+        break;
+      }
+
+      default:
+        await sendResult(false, "Neznan podukaz za voice!");
     }
+  } catch (err) {
+    console.error(err);
+    await sendResult(
+      false,
+      `Prišlo je do napake pri voice ukazu: ${err.message}`,
+    );
   }
+}
 
   // --- timeout komanda --- LOGI DODANI
   else if (command === "timeout") {
