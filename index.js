@@ -818,12 +818,20 @@ else if (command === "role") {
       }
 
       case "create": {
-        const name = args[1];
-        const color = args[2] || null;
-        if (!name) throw "Podaj ime role!";
-        await message.guild.roles.create({ name, color });
-        break;
-      }
+  if (!args[1]) throw "Podaj ime role!";
+  let color = null;
+  let name = args.slice(1).join(" ");
+
+  // Če je zadnji argument barva (#FF0000)
+  const lastArg = args[args.length - 1];
+  if (/^#([0-9A-F]{6})$/i.test(lastArg)) {
+    color = lastArg;
+    name = args.slice(1, -1).join(" ");
+  }
+
+  await message.guild.roles.create({ name, color });
+  break;
+}
 
       case "delete": {
         const role = message.mentions.roles.first();
@@ -844,22 +852,22 @@ else if (command === "role") {
       }
 
       case "setperm": {
-        const role = message.mentions.roles.first();
-        const permRaw = args.slice(2).join(" ").toUpperCase();
-        if (!role) throw "Označi role!";
+  const role = message.mentions.roles.first();
+  if (!role) throw "Označi role!";
+  const permRaw = args.slice(2).join(" ").toUpperCase();
 
-        if (permRaw === "ALL") {
-          await role.setPermissions(ALL_PERMS);
-          await role.edit({ hoist: true });
-        } else if (permRaw === "DISPLAY") {
-          await role.edit({ hoist: true });
-        } else {
-          const perm = PERM_MAP[permRaw];
-          if (!perm) throw `Neveljaven permission: ${permRaw}`;
-          await role.setPermissions([...new Set([...role.permissions.toArray(), perm])]);
-        }
-        break;
-      }
+  if (permRaw === "ALL") {
+    await role.setPermissions(ALL_PERMS); // samo številke
+    await role.edit({ hoist: true }); // DISPLAY ločeno
+  } else if (permRaw === "DISPLAY") {
+    await role.edit({ hoist: true });
+  } else {
+    const perm = PERM_MAP[permRaw];
+    if (!perm) throw `Neveljaven permission: ${permRaw}`;
+    await role.setPermissions([...new Set([...role.permissions.toArray(), perm])]);
+  }
+  break;
+}
 
       case "rperm": {
         const role = message.mentions.roles.first();
