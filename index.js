@@ -925,12 +925,14 @@ else if (command === "role") {
   } else if (permRaw === "DISPLAY") {
     await role.edit({ hoist: false });
   } else {
-    const perm = PERM_MAP[permRaw];
-    if (!perm || typeof perm !== "bigint") throw `Neveljaven permission: ${permRaw}`; // SPREMENI "number" V "bigint"
-    const currentPerms = role.permissions.toArray();
-    const filteredPerms = currentPerms.filter(p => p !== perm);
-    await role.setPermissions(filteredPerms);
-  }
+  const perm = PERM_MAP[permRaw];
+  if (!perm || typeof perm !== "bigint") throw `Neveljaven permission: ${permRaw}`;
+  
+  // Odstrani permission
+  const newPerms = new PermissionsBitField(role.permissions);
+  newPerms.remove(perm);
+  await role.setPermissions(newPerms);
+}
   break;
 }
 
