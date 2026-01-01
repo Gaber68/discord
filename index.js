@@ -838,31 +838,45 @@ Izvedene komande: \`${totalCommandsExecuted}\`
 
     // ------------------ HELP ------------------
     if (sub === "help") {
-      const helpEmbed = new EmbedBuilder()
-        .setTitle("📖 Channel Komande")
-        .setDescription("Seznam vseh podukazov za `!channel`:")
-        .addFields(
-          {
-            name: "!channel create <text|voice> <ime>",
-            value: "Ustvari nov kanal (tekstovni ali voice).",
-          },
-          {
-            name: "!channel create category <ime>",
-            value: "Ustvari novo kategorijo.",
-          },
-          { name: "!channel delete <#kanal|id>", value: "Izbriše kanal." },
-          {
-            name: "!channel move <#kanal|ime> <#kategorija|ime>",
-            value: "Premakne kanal pod določeno kategorijo.",
-          },
-          { name: "!channel help", value: "Prikaže to pomoč." },
-        )
-        .setColor("#02B025")
-        .setTimestamp()
-        .setFooter({ text: `Requested by ${message.author.tag}` });
+  const helpEmbed = new EmbedBuilder()
+    .setTitle("📖 Channel Komande")
+    .setDescription("Seznam vseh podukazov za `!channel`:")
+    .addFields(
+      {
+        name: "!channel create <text|voice> <ime>",
+        value:
+          "Ustvari nov kanal (tekstovni ali glasovni).\n" +
+          "**Primer:** `!channel create text splošno`",
+      },
+      {
+        name: "!channel create category <ime>",
+        value:
+          "Ustvari novo kategorijo.\n" +
+          "**Primer:** `!channel create category Projekti`",
+      },
+      {
+        name: "!channel delete <#kanal | id>",
+        value:
+          "Izbriše izbran kanal.\n" +
+          "**Primer:** `!channel delete #splošno`",
+      },
+      {
+        name: "!channel move <#kanal | ime> <#kategorija | ime>",
+        value:
+          "Premakne kanal v določeno kategorijo.\n" +
+          "**Primer:** `!channel move #splošno Projekti`",
+      },
+      {
+        name: "!channel help",
+        value: "Prikaže to pomoč.",
+      }
+    )
+    .setColor("#02B025")
+    .setTimestamp()
+    .setFooter({ text: `Requested by ${message.author.tag}` });
 
-      return message.channel.send({ embeds: [helpEmbed] });
-    }
+  return message.channel.send({ embeds: [helpEmbed] });
+}
 
     // ------------------ MAIN LOGIC ------------------
     switch (sub) {
@@ -1036,14 +1050,63 @@ Izvedene komande: \`${totalCommandsExecuted}\`
     };
 
     try {
-      switch (sub) {
-        case "help":
-          return sendEmbed(
-            message.channel,
-            "Voice komande",
-            "`!voice kick @uporabnik`\n`!voice move @uporabnik #kanal`\n`!voice mute @uporabnik`\n`!voice unmute @uporabnik`\n`!voice deafen @uporabnik`\n`!voice undeafen @uporabnik`",
-            "#00FF99",
-          );
+  switch (sub) {
+    case "help": {
+      const helpEmbed = new EmbedBuilder()
+        .setTitle("📖 Voice Komande")
+        .setDescription("Seznam vseh podukazov za `!voice`:")
+        .addFields(
+          {
+            name: "!voice kick @uporabnik",
+            value:
+              "Odstrani uporabnika iz voice kanala.\n" +
+              "**Primer:** `!voice kick @Janez`",
+          },
+          {
+            name: "!voice move @uporabnik #kanal",
+            value:
+              "Premakne uporabnika v drug voice kanal.\n" +
+              "**Primer:** `!voice move @Janez #Gaming`",
+          },
+          {
+            name: "!voice mute @uporabnik",
+            value:
+              "Utiša uporabnika v voice kanalu.\n" +
+              "**Primer:** `!voice mute @Janez`",
+          },
+          {
+            name: "!voice unmute @uporabnik",
+            value:
+              "Odstrani utišanje uporabniku.\n" +
+              "**Primer:** `!voice unmute @Janez`",
+          },
+          {
+            name: "!voice deafen @uporabnik",
+            value:
+              "Onemogoči zvok uporabniku (deafen).\n" +
+              "**Primer:** `!voice deafen @Janez`",
+          },
+          {
+            name: "!voice undeafen @uporabnik",
+            value:
+              "Ponovno omogoči zvok uporabniku.\n" +
+              "**Primer:** `!voice undeafen @Janez`",
+          },
+          {
+            name: "!voice help",
+            value: "Prikaže to pomoč.",
+          }
+        )
+        .setColor("#02B025")
+        .setTimestamp()
+        .setFooter({ text: `Requested by ${message.author.tag}` });
+
+      return message.channel.send({ embeds: [helpEmbed] });
+    }
+  }
+} catch (err) {
+  console.error(err);
+}
 
         case "kick":
         case "move":
