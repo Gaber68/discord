@@ -870,25 +870,25 @@ else if (command === "role") {
         break;
       }
 
-      case "rperm": {
+      case "setperm": {
         const role = message.mentions.roles.first();
-        const permRaw = args.slice(2).join(" ").toUpperCase();
         if (!role) throw "Označi role!";
+        const permRaw = args.slice(2).join(" ").toUpperCase();
 
         if (permRaw === "ALL") {
-          await role.setPermissions([]);
-          await role.edit({ hoist: false });
-        } else if (permRaw === "DISPLAY") {
-          await role.edit({ hoist: false });
-        } else {
-          const perm = PERM_MAP[permRaw];
-          if (!perm || typeof perm !== "number") throw `Neveljaven permission: ${permRaw}`;
-          const currentPerms = role.permissions.toArray();
-          const filteredPerms = currentPerms.filter(p => p !== perm);
-          await role.setPermissions(filteredPerms);
-        }
-        break;
+        // Direktno nastavi vse permissione (brez merge-anja s trenutnimi)
+        await role.setPermissions(ALL_PERMS);
+        await role.edit({ hoist: true });
+      } else if (permRaw === "DISPLAY") {
+        await role.edit({ hoist: true });
+      } else {
+        const perm = PERM_MAP[permRaw];
+        if (!perm || typeof perm !== "number") throw `Neveljaven permission: ${permRaw}`;
+        // Za single permission uporabi add namesto set
+        await role.permissions.add(perm);
       }
+      break;
+    }
 
       case "dperm": {
         const role = message.mentions.roles.first();
