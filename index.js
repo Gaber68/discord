@@ -694,44 +694,66 @@ Izvedene komande: \`${totalCommandsExecuted}\`
     message.author.id === message.guild.ownerId ||
     message.member.permissions.has(PermissionsBitField.Flags.ManageRoles);
 
-  /* ================= PERMISSION MAP (ZNOTRAJ ROLE) ================= */
+  /* ================= PERMISSION MAP ================= */
   const PERM_MAP = {
+    // Moderation
     KICK_MEMBERS: "KickMembers",
     BAN_MEMBERS: "BanMembers",
     TIMEOUT_MEMBERS: "ModerateMembers",
+    MODERATE_MEMBERS: "ModerateMembers",
     MANAGE_MESSAGES: "ManageMessages",
-    DEAFEN_MEMBERS: "DeafenMembers",
-    MUTE_MEMBERS: "MuteMembers",
     MANAGE_NICKNAMES: "ManageNicknames",
+
+    // Roles & Server
     MANAGE_ROLES: "ManageRoles",
     MANAGE_CHANNELS: "ManageChannels",
     MANAGE_GUILD: "ManageGuild",
     VIEW_AUDIT_LOG: "ViewAuditLog",
-    SEND_MESSAGES: "SendMessages",
-    READ_MESSAGE_HISTORY: "ReadMessageHistory",
+    MANAGE_EVENTS: "ManageEvents",
+
+    // Voice
     CONNECT: "Connect",
     SPEAK: "Speak",
+    MUTE_MEMBERS: "MuteMembers",
+    DEAFEN_MEMBERS: "DeafenMembers",
+    MOVE_MEMBERS: "MoveMembers",
+    PRIORITY_SPEAKER: "PrioritySpeaker",
     STREAM: "Stream",
-    ATTACH_FILES: "AttachFiles",
+    USE_VAD: "UseVad",
+
+    // Text
+    SEND_MESSAGES: "SendMessages",
+    READ_MESSAGE_HISTORY: "ReadMessageHistory",
     ADD_REACTIONS: "AddReactions",
+    ATTACH_FILES: "AttachFiles",
     EMBED_LINKS: "EmbedLinks",
+    USE_EXTERNAL_EMOJIS: "UseExternalEmojis",
+    USE_EXTERNAL_STICKERS: "UseExternalStickers",
     MENTION_EVERYONE: "MentionEveryone",
+
+    // Threads
+    CREATE_PUBLIC_THREADS: "CreatePublicThreads",
+    CREATE_PRIVATE_THREADS: "CreatePrivateThreads",
+    MANAGE_THREADS: "ManageThreads",
   };
+
+  const ALL_PERMS = Object.values(PERM_MAP);
 
   /* ================= HELP (BREZ DOVOLJENJ) ================= */
   if (sub === "help") {
     const embed = new EmbedBuilder()
-      .setTitle("📖 Role Help")
-      .setDescription("Vse razpoložljive `!role` komande:")
+      .setTitle("📖 Role Komande")
+      .setDescription("Seznam vseh `!role` podukazov:")
       .addFields(
         { name: "!role add @user @role", value: "Doda role uporabniku" },
         { name: "!role remove @user @role", value: "Odstrani role uporabniku" },
-        { name: "!role create <ime> [#barva]", value: "Ustvari role" },
+        { name: "!role create <ime> [#barva]", value: "Ustvari novo role" },
         { name: "!role delete @role", value: "Izbriše role" },
-        { name: "!role delete all", value: "Izbriše vse role (potrditev)" },
-        { name: "!role perms", value: "Seznam vseh permissionov" },
-        { name: "!role setperm @role PERM", value: "Doda permission" },
-        { name: "!role rperm @role PERM | all", value: "Odstrani permission(e)" },
+        { name: "!role perms", value: "Prikaže vse permissione" },
+        { name: "!role setperm @role PERM", value: "Doda permission role" },
+        { name: "!role setperm @role all", value: "Doda VSE permissione" },
+        { name: "!role rperm @role PERM", value: "Odstrani permission" },
+        { name: "!role rperm @role all", value: "Odstrani VSE permissione" },
       )
       .setColor("#2ECC71");
 
@@ -742,36 +764,25 @@ Izvedene komande: \`${totalCommandsExecuted}\`
   if (sub === "perms") {
     const embed = new EmbedBuilder()
       .setTitle("🔐 Role Permissions")
-      .setDescription("Uporabi: `!role setperm @role PERMISSION`")
+      .setDescription("Uporaba:\n`!role setperm @role PERMISSION`\n`!role setperm @role all`")
       .addFields(
-        {
-          name: "🛠️ Moderacija",
-          value: "`KICK_MEMBERS`\n`BAN_MEMBERS`\n`TIMEOUT_MEMBERS`\n`MANAGE_MESSAGES`",
-          inline: true,
-        },
-        {
-          name: "🔊 Voice",
-          value: "`CONNECT`\n`SPEAK`\n`DEAFEN_MEMBERS`\n`MUTE_MEMBERS`",
-          inline: true,
-        },
-        {
-          name: "⚙️ Server",
-          value: "`MANAGE_ROLES`\n`MANAGE_CHANNELS`\n`MANAGE_GUILD`\n`VIEW_AUDIT_LOG`",
-          inline: true,
-        },
+        { name: "🛠️ Moderacija", value: "`KICK_MEMBERS`\n`BAN_MEMBERS`\n`MODERATE_MEMBERS`\n`MANAGE_MESSAGES`", inline: true },
+        { name: "🔊 Voice", value: "`CONNECT`\n`SPEAK`\n`MUTE_MEMBERS`\n`DEAFEN_MEMBERS`\n`MOVE_MEMBERS`", inline: true },
+        { name: "⚙️ Server", value: "`MANAGE_ROLES`\n`MANAGE_CHANNELS`\n`MANAGE_GUILD`\n`VIEW_AUDIT_LOG`", inline: true },
+        { name: "💬 Text", value: "`SEND_MESSAGES`\n`EMBED_LINKS`\n`ATTACH_FILES`\n`MENTION_EVERYONE`", inline: true },
       )
       .setColor("#F1C40F");
 
     return message.channel.send({ embeds: [embed] });
   }
 
-  /* ================= PERMISSION BLOCK ================= */
+  /* ================= BLOCK ================= */
   if (!hasPermission) {
     return message.channel.send({
       embeds: [
         new EmbedBuilder()
           .setTitle("❌ Napaka")
-          .setDescription("Nimaš dovoljenja za to komando.")
+          .setDescription("Nimaš dovoljenja za `!role` komande.")
           .setColor("#E74C3C"),
       ],
     });
@@ -786,7 +797,6 @@ Izvedene komande: \`${totalCommandsExecuted}\`
         const role = message.mentions.roles.first();
         if (!member || !role) throw "Označi uporabnika in role!";
         await member.roles.add(role);
-        await logAction(message.guild, "➕ Role dodana", `${role.name} → ${member.user.tag}`);
         break;
       }
 
@@ -795,17 +805,21 @@ Izvedene komande: \`${totalCommandsExecuted}\`
         const role = message.mentions.roles.first();
         if (!member || !role) throw "Označi uporabnika in role!";
         await member.roles.remove(role);
-        await logAction(message.guild, "➖ Role odstranjena", `${role.name} → ${member.user.tag}`);
         break;
       }
 
       case "setperm": {
         const role = message.mentions.roles.first();
         const permRaw = args.slice(2).join(" ").toUpperCase();
-        const perm = PERM_MAP[permRaw];
-        if (!role || !perm) throw "Neveljaven role ali permission!";
-        await role.setPermissions([...role.permissions.toArray(), perm]);
-        await logAction(message.guild, "🔐 Permission dodan", `${role.name}: ${perm}`);
+        if (!role) throw "Označi role!";
+
+        if (permRaw === "ALL") {
+          await role.setPermissions(ALL_PERMS);
+        } else {
+          const perm = PERM_MAP[permRaw];
+          if (!perm) throw `Neveljaven permission: ${permRaw}`;
+          await role.setPermissions([...new Set([...role.permissions.toArray(), perm])]);
+        }
         break;
       }
 
@@ -816,12 +830,10 @@ Izvedene komande: \`${totalCommandsExecuted}\`
 
         if (permRaw === "ALL") {
           await role.setPermissions([]);
-          await logAction(message.guild, "🗑️ Permissioni odstranjeni", `${role.name}: ALL`);
         } else {
           const perm = PERM_MAP[permRaw];
-          if (!perm) throw "Neveljaven permission!";
+          if (!perm) throw `Neveljaven permission: ${permRaw}`;
           await role.setPermissions(role.permissions.toArray().filter(p => p !== perm));
-          await logAction(message.guild, "❌ Permission odstranjen", `${role.name}: ${perm}`);
         }
         break;
       }
@@ -831,11 +843,7 @@ Izvedene komande: \`${totalCommandsExecuted}\`
     }
 
     message.channel.send({
-      embeds: [
-        new EmbedBuilder()
-          .setTitle("✅ Opravljeno")
-          .setColor("#57F287"),
-      ],
+      embeds: [new EmbedBuilder().setTitle("✅ Opravljeno").setColor("#57F287")],
     });
 
   } catch (err) {
