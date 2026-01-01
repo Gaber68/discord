@@ -905,7 +905,7 @@ else if (command === "role") {
           await role.edit({ hoist: true });
         } else {
           const perm = PERM_MAP[permRaw];
-          if (!perm || typeof perm !== "number") throw `Neveljaven permission: ${permRaw}`;
+          if (!perm || typeof perm !== "bigint") throw `Neveljaven permission: ${permRaw}`; // SPREMENI
           
           // Dodaj permission k obstoječim
           const currentPerms = role.permissions.toArray();
@@ -925,12 +925,8 @@ else if (command === "role") {
   } else if (permRaw === "DISPLAY") {
     await role.edit({ hoist: false });
   } else {
-    console.log("DEBUG permRaw:", permRaw); // DODAJ TO
-    console.log("DEBUG PERM_MAP[permRaw]:", PERM_MAP[permRaw]); // DODAJ TO
-    console.log("DEBUG typeof:", typeof PERM_MAP[permRaw]); // DODAJ TO
-    
     const perm = PERM_MAP[permRaw];
-    if (!perm || typeof perm !== "number") throw `Neveljaven permission: ${permRaw}`;
+    if (!perm || typeof perm !== "bigint") throw `Neveljaven permission: ${permRaw}`; // SPREMENI "number" V "bigint"
     const currentPerms = role.permissions.toArray();
     const filteredPerms = currentPerms.filter(p => p !== perm);
     await role.setPermissions(filteredPerms);
