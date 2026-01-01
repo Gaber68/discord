@@ -688,26 +688,28 @@ Izvedene komande: \`${totalCommandsExecuted}\`
   const sub = args[0]?.toLowerCase();
   const botMember = message.guild.members.me;
 
-  const ROLE_WHITELIST = []; // add your IDs here
+  /* ================= WHITELIST ================= */
+  const ROLE_WHITELIST = [
+    "TVOJ_DISCORD_ID_TUKAJ", // <-- DODAJ SVOJ ID
+  ];
 
-  const hasPermission =
-    message.member.permissions.has(PermissionsBitField.Flags.ManageRoles) ||
+  const isWhitelisted =
     ROLE_WHITELIST.includes(message.author.id) ||
     message.author.id === message.guild.ownerId;
 
-  /* ================= HELP ================= */
+  /* ================= JAVNI UKAZI (BREZ PERMS) ================= */
   if (sub === "help") {
     const helpEmbed = new EmbedBuilder()
-      .setTitle("📖 Role Commands")
+      .setTitle("📖 Role Komande")
       .setDescription("Seznam vseh podukazov za `!role`:")
       .addFields(
-        { name: "!role add @user @role", value: "Doda role uporabniku.\n**Primer:** `!role add @Janez @Moderator`" },
-        { name: "!role remove @user @role", value: "Odstrani role uporabniku.\n**Primer:** `!role remove @Janez @Moderator`" },
-        { name: "!role create <ime> [#barva]", value: "Ustvari novo role.\n**Primer:** `!role create VIP #FFD700`" },
-        { name: "!role delete @role / all", value: "Izbriše role ali vse role.\n**Primer:** `!role delete @VIP`\n**Primer:** `!role delete all`" },
-        { name: "!role perms", value: "Pokaže seznam vseh permissions in navodila za dodajanje." },
-        { name: "!role setperm @role \"PERMISSION\"", value: "Doda permission role.\n**Primer:** `!role setperm @Moderator DEAFEN_MEMBERS`" },
-        { name: "!role rperm @role \"PERMISSION\" / all", value: "Odstrani permission role.\n**Primer:** `!role rperm @Moderator DEAFEN_MEMBERS`\n**Primer:** `!role rperm @Moderator all`" }
+        { name: "!role add @user @role", value: "Doda role uporabniku." },
+        { name: "!role remove @user @role", value: "Odstrani role uporabniku." },
+        { name: "!role create <ime> [#barva]", value: "Ustvari novo role." },
+        { name: "!role delete @role / all", value: "Izbriše role ali vse role." },
+        { name: "!role perms", value: "Prikaže vse Discord permissione." },
+        { name: "!role setperm @role PERMISSION", value: "Doda permission roli." },
+        { name: "!role rperm @role PERMISSION / all", value: "Odstrani permission(e)." }
       )
       .setColor("#02B025")
       .setTimestamp()
@@ -716,232 +718,119 @@ Izvedene komande: \`${totalCommandsExecuted}\`
     return message.channel.send({ embeds: [helpEmbed] });
   }
 
-  if (!hasPermission) {
-    return sendEmbed(message.channel, "❌ Napaka", "Nimaš dovoljenja!", "#FF5555");
+  if (sub === "perms") {
+    const permsEmbed = new EmbedBuilder()
+      .setTitle("🔐 Role Permissions")
+      .setDescription(
+        "**Dodaj:** `!role setperm @role PERMISSION`\n" +
+        "**Odstrani:** `!role rperm @role PERMISSION` ali `all`"
+      )
+      .addFields(
+        { name: "🛠️ Moderacija", value: "`KICK_MEMBERS`\n`BAN_MEMBERS`\n`TIMEOUT_MEMBERS`\n`MANAGE_MESSAGES`\n`DEAFEN_MEMBERS`", inline: true },
+        { name: "📂 Server", value: "`MANAGE_ROLES`\n`MANAGE_CHANNELS`\n`VIEW_AUDIT_LOG`\n`MANAGE_GUILD`", inline: true },
+        { name: "💬 Text & Voice", value: "`SEND_MESSAGES`\n`CONNECT`\n`SPEAK`\n`STREAM`", inline: true }
+      )
+      .setColor("#F1C40F")
+      .setTimestamp();
+
+    return message.channel.send({ embeds: [permsEmbed] });
   }
 
-  /* ================= HELPER FUNCTIONS ================= */
-  const sendResult = async (success = true, text) => {
-    const description = text && text.length > 0 ? text : " ";
-    if (success) {
-      await sendEmbed(message.channel, "✅ Opravljeno", description, "#57F287");
-    } else {
-      await sendEmbed(message.channel, "❌ Napaka", description, "#FF5555");
-    }
-  };
+  /* ================= PERMISSION CHECK ================= */
+  const hasPermission =
+    isWhitelisted ||
+    message.member.permissions.has(PermissionsBitField.Flags.ManageRoles);
 
-  const handleRoleAction = async (title, description, color = "#02B025") => {
-    await logAction(message.guild, title, description, color);
-    await sendResult();
-  };
+  if (!hasPermission) {
+    return sendEmbed(
+      message.channel,
+      "❌ Napaka",
+      "Nimaš dovoljenja!",
+      "#FF5555"
+    );
+  }
 
-  /* ================= PERMISSIONS MAP ================= */
-  const PERM_MAP = {
-    KICK_MEMBERS: "KickMembers",
-    BAN_MEMBERS: "BanMembers",
-    TIMEOUT_MEMBERS: "TimeoutMembers",
-    MANAGE_MESSAGES: "ManageMessages",
-    MUTE_MEMBERS: "MuteMembers",
-    DEAFEN_MEMBERS: "DeafenMembers",
-    MANAGE_NICKNAMES: "ManageNicknames",
-    MANAGE_ROLES: "ManageRoles",
-    MANAGE_CHANNELS: "ManageChannels",
-    MANAGE_GUILD: "ManageGuild",
-    VIEW_AUDIT_LOG: "ViewAuditLog",
-    SEND_MESSAGES: "SendMessages",
-    READ_MESSAGE_HISTORY: "ReadMessageHistory",
-    CONNECT: "Connect",
-    SPEAK: "Speak",
-    USE_VAD: "UseVad",
-    PRIORITY_SPEAKER: "PrioritySpeaker",
-    STREAM: "Stream",
-    ATTACH_FILES: "AttachFiles",
-    ADD_REACTIONS: "AddReactions",
-    EMBED_LINKS: "EmbedLinks",
-    MENTION_EVERYONE: "MentionEveryone",
-    MANAGE_THREADS: "ManageThreads",
-    CREATE_PUBLIC_THREADS: "CreatePublicThreads",
-    CREATE_PRIVATE_THREADS: "CreatePrivateThreads",
-    USE_EXTERNAL_EMOJIS: "UseExternalEmojis",
-    USE_EXTERNAL_STICKERS: "UseExternalStickers",
-    MANAGE_EVENTS: "ManageEvents",
-    MODERATE_MEMBERS: "ModerateMembers",
-  };
+  /* ================= PERMISSION MAP ================= */
+  const PERM_MAP = Object.fromEntries(
+    Object.entries(PermissionsBitField.Flags).map(([k]) => [k, k])
+  );
 
   /* ================= ACTIONS ================= */
   try {
     switch (sub) {
 
+      /* ---------- ADD ROLE ---------- */
       case "add": {
         const member = message.mentions.members.first();
         const role = message.mentions.roles.first();
-        if (!member || !role) return sendResult(false, "Označi uporabnika in role!");
+        if (!member || !role)
+          return sendEmbed(message.channel, "❌ Napaka", "Označi uporabnika in role!", "#FF5555");
+
         await member.roles.add(role);
-        await handleRoleAction("➕ Role dodana", `Role **${role.name}** dodana uporabniku **${member.user.tag}**\nDodajal: ${message.author.tag}`);
-        break;
+        await logAction(message.guild, "➕ Role dodana",
+          `${message.author.tag} → ${member.user.tag} (${role.name})`);
+        return sendEmbed(message.channel, "✅ Opravljeno", "Role dodana.", "#57F287");
       }
 
+      /* ---------- REMOVE ROLE ---------- */
       case "remove": {
         const member = message.mentions.members.first();
         const role = message.mentions.roles.first();
-        if (!member || !role) return sendResult(false, "Označi uporabnika in role!");
+        if (!member || !role)
+          return sendEmbed(message.channel, "❌ Napaka", "Označi uporabnika in role!", "#FF5555");
+
         await member.roles.remove(role);
-        await handleRoleAction("➖ Role odstranjena", `Role **${role.name}** odstranjena uporabniku **${member.user.tag}**\nOdstranil: ${message.author.tag}`);
-        break;
+        await logAction(message.guild, "➖ Role odstranjena",
+          `${message.author.tag} → ${member.user.tag} (${role.name})`);
+        return sendEmbed(message.channel, "✅ Opravljeno", "Role odstranjena.", "#57F287");
       }
 
-      case "create": {
-        const name = args[1];
-        if (!name) return sendResult(false, "Vpiši ime role!");
-        let colorArg = args.slice(2).find(v => /^#([0-9A-F]{6})$/i.test(v));
-        const roleOptions = { name, reason: `Ustvaril ${message.author.tag}` };
-        if (colorArg) roleOptions.color = parseInt(colorArg.replace("#", ""), 16);
-        const role = await message.guild.roles.create(roleOptions);
-        await role.setPosition(botMember.roles.highest.position - 1);
-        await handleRoleAction("🆕 Role ustvarjena", `**${role.name}**\nUstvaril: ${message.author.tag}`);
-        break;
-      }
-
-      case "delete": {
-        const roleArg = args[1]?.toLowerCase();
-
-        if (roleArg === "all") {
-          const row = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId("confirmDeleteAll").setLabel("✅ Da").setStyle(ButtonStyle.Success),
-            new ButtonBuilder().setCustomId("cancelDeleteAll").setLabel("❌ Ne").setStyle(ButtonStyle.Danger)
-          );
-
-          const confirmEmbed = new EmbedBuilder()
-            .setTitle("⚠️ Potrditev")
-            .setDescription("Ali si prepričan, da želiš izbrisati **vse role**?\nBot bo preskočil role, ki jih ne more izbrisati.")
-            .setColor("#FF5555");
-
-          const confirmMessage = await message.channel.send({ embeds: [confirmEmbed], components: [row] });
-
-          const collector = confirmMessage.createMessageComponentCollector({ time: 30000 });
-
-          collector.on("collect", async i => {
-            if (i.user.id !== message.author.id) return i.reply({ content: "To ni tvoja potrditev!", ephemeral: true });
-
-            if (i.customId === "cancelDeleteAll") {
-              const cancelEmbed = new EmbedBuilder()
-                .setTitle("❌ Opravljeno (preklicano)")
-                .setDescription(`Uporabnik **${i.user.tag}** je preklical brisanje vseh rol`)
-                .setColor("#FF5555")
-                .setTimestamp();
-
-              await message.channel.send({ embeds: [cancelEmbed] });
-              await logAction(message.guild, "❌ Delete All Cancelled", `Uporabnik ${i.user.tag} je preklical brisanje vseh rol`, "#FF5555");
-              await confirmMessage.delete().catch(() => {});
-              collector.stop();
-              return;
-            }
-
-            if (i.customId === "confirmDeleteAll") {
-              await confirmMessage.delete().catch(() => {});
-              let deletedCount = 0;
-              let skippedRoles = [];
-              const roles = message.guild.roles.cache
-                .filter(r => r.position < botMember.roles.highest.position && !r.managed && r.id !== message.guild.id)
-                .sort((a, b) => b.position - a.position);
-
-              for (const r of roles.values()) {
-                try { await r.delete(`Deleted by ${message.author.tag} via !role delete all`); deletedCount++; }
-                catch { skippedRoles.push(r.name); }
-              }
-
-              const resultEmbed = new EmbedBuilder()
-                .setTitle("🗑️ Opravljeno")
-                .setDescription(`Izbrisano: **${deletedCount}** role\nPreskočeno: **${skippedRoles.length}** role`)
-                .setColor("#57F287")
-                .setFooter({ text: `Izvedel: ${message.author.tag}` })
-                .setTimestamp();
-
-              if (skippedRoles.length > 0) resultEmbed.addFields({ name: "Preskočene role", value: skippedRoles.join(", ") });
-
-              await message.channel.send({ embeds: [resultEmbed] });
-
-              await logAction(message.guild, "🗑️ Delete All Roles", 
-                `Izbrisal: ${deletedCount} role\nPreskočeno: ${skippedRoles.length}\nPreskočene: ${skippedRoles.join(", ")}`, "#FF5555");
-
-              collector.stop();
-            }
-          });
-
-          collector.on("end", async () => {
-            if (!confirmMessage.deleted && confirmMessage.editable)
-              await confirmMessage.edit({ components: [] });
-          });
-
-          break;
-        }
-
-        // DELETE SINGLE
-        const role = message.mentions.roles.first();
-        if (!role) return sendResult(false, "Označi role za brisanje!");
-        if (role.position >= botMember.roles.highest.position)
-          return sendResult(false, `Bot ne more izbrisati role **${role.name}**`);
-
-        await role.delete(`Deleted by ${message.author.tag} via !role delete`);
-        await handleRoleAction("🗑️ Role izbrisana", `Role **${role.name}** izbrisal: ${message.author.tag}`, "#FF5555");
-        break;
-      }
-
-      case "perms": {
-        const permsEmbed = new EmbedBuilder()
-          .setTitle("🔐 Role Permissions")
-          .setDescription("Seznam Discord dovoljenj. Za dodajanje: `!role setperm @role \"PERMISSION\"`\nZa odstranjevanje: `!role rperm @role \"PERMISSION\"` ali `all`")
-          .addFields(
-            { name: "🛠️ Moderacija", value: "`KICK_MEMBERS`\n`BAN_MEMBERS`\n`TIMEOUT_MEMBERS`\n`MANAGE_MESSAGES`\n`MUTE_MEMBERS`\n`DEAFEN_MEMBERS`\n`MANAGE_NICKNAMES`", inline: true },
-            { name: "📂 Strežnik", value: "`MANAGE_ROLES`\n`MANAGE_CHANNELS`\n`MANAGE_GUILD`\n`VIEW_AUDIT_LOG`\n`MANAGE_EVENTS`\n`MODERATE_MEMBERS`", inline: true },
-            { name: "💬 Besedilo & Voice", value: "`SEND_MESSAGES`\n`READ_MESSAGE_HISTORY`\n`CONNECT`\n`SPEAK`\n`USE_VAD`\n`PRIORITY_SPEAKER`\n`STREAM`", inline: true },
-            { name: "📎 Dodatno", value: "`ATTACH_FILES`\n`ADD_REACTIONS`\n`EMBED_LINKS`\n`MENTION_EVERYONE`\n`MANAGE_THREADS`\n`CREATE_PUBLIC_THREADS`\n`CREATE_PRIVATE_THREADS`\n`USE_EXTERNAL_EMOJIS`\n`USE_EXTERNAL_STICKERS`" }
-          )
-          .setColor("#F1C40F")
-          .setTimestamp()
-          .setFooter({ text: "Role Permissions • Informativni pregled" });
-
-        return message.channel.send({ embeds: [permsEmbed] });
-      }
-
+      /* ---------- SET PERMISSION ---------- */
       case "setperm": {
         const role = message.mentions.roles.first();
-        if (!role) return sendResult(false, "Označi role!");
-        const permRaw = args.slice(2).join(" ").replace(/"/g, "").toUpperCase();
-        const perm = PERM_MAP[permRaw];
-        if (!perm) return sendResult(false, `Neveljaven permission: **${permRaw}**`);
-        if (role.position >= botMember.roles.highest.position)
-          return sendResult(false, `Bot ne more urejati role **${role.name}**`);
+        const perm = args[2]?.toUpperCase();
+        if (!role || !PERM_MAP[perm])
+          return sendEmbed(message.channel, "❌ Napaka", "Neveljaven permission.", "#FF5555");
+
         await role.setPermissions([...role.permissions.toArray(), perm]);
-        await handleRoleAction("🔐 Permission dodan", `Role **${role.name}** je bil dodan permission:\n**${perm}**\nDodajal: ${message.author.tag}`);
-        break;
+        await logAction(message.guild, "🔐 Permission dodan",
+          `${message.author.tag} → ${role.name} (${perm})`);
+        return sendEmbed(message.channel, "✅ Opravljeno", "Permission dodan.", "#57F287");
       }
 
+      /* ---------- REMOVE PERMISSION ---------- */
       case "rperm": {
         const role = message.mentions.roles.first();
-        if (!role) return sendResult(false, "Označi role!");
-        const permRaw = args.slice(2).join(" ").replace(/"/g, "").toUpperCase();
-        if (permRaw === "ALL") {
+        const perm = args[2]?.toUpperCase();
+
+        if (!role)
+          return sendEmbed(message.channel, "❌ Napaka", "Označi role!", "#FF5555");
+
+        if (perm === "ALL") {
           await role.setPermissions([]);
-          await handleRoleAction("🗑️ Vsi permissioni odstranjeni", `Vsi permissioni role **${role.name}** so bili odstranjeni.\nOdstranil: ${message.author.tag}`, "#FF5555");
-          break;
+          await logAction(message.guild, "🗑️ Permissions reset",
+            `${message.author.tag} → ${role.name}`);
+          return sendEmbed(message.channel, "✅ Opravljeno", "Vsi permissioni odstranjeni.", "#57F287");
         }
-        const perm = PERM_MAP[permRaw];
-        if (!perm) return sendResult(false, `Neveljaven permission: **${permRaw}**`);
-        const updatedPerms = role.permissions.toArray().filter(p => p !== perm);
-        await role.setPermissions(updatedPerms);
-        await handleRoleAction("❌ Permission odstranjen", `Permission **${perm}** odstranjen iz role **${role.name}**\nOdstranil: ${message.author.tag}`, "#FF5555");
-        break;
+
+        if (!PERM_MAP[perm])
+          return sendEmbed(message.channel, "❌ Napaka", "Neveljaven permission.", "#FF5555");
+
+        await role.setPermissions(role.permissions.toArray().filter(p => p !== perm));
+        await logAction(message.guild, "❌ Permission odstranjen",
+          `${message.author.tag} → ${role.name} (${perm})`);
+        return sendEmbed(message.channel, "✅ Opravljeno", "Permission odstranjen.", "#57F287");
       }
 
       default:
-        return sendResult(false, "Neznan podukaz za role!");
+        return sendEmbed(message.channel, "❌ Napaka", "Neznan podukaz!", "#FF5555");
     }
   } catch (err) {
     console.error(err);
-    await sendResult(false, `Prišlo je do napake: ${err.message}`);
+    return sendEmbed(message.channel, "❌ Napaka", err.message, "#FF5555");
   }
 }
+
 
   // ---------------- Channel ukazi z logiranjem ---------------- LOGI DODANI
   else if (command === "channel") {
