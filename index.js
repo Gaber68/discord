@@ -853,22 +853,37 @@ Izvedene komande: \`${totalCommandsExecuted}\`
       }
 
       case "setperm": {
-        const role = message.mentions.roles.first();
-        const permInput = args.slice(2).join(" ").replace(/"/g, "").toUpperCase();
-        if (!role) return sendResult(false, "Označi role!");
-        if (!permInput) return sendResult(false, "Vpiši permission!");
-        if (!PermissionsBitField.Flags[permInput])
-          return sendResult(false, `Neveljaven permission: **${permInput}**`);
-        if (role.position >= botMember.roles.highest.position)
-          return sendResult(false, `Bot ne more urejati role **${role.name}**`);
+  const role = message.mentions.roles.first();
+  if (!role) return sendResult(false, "Označi role!");
 
-        await role.setPermissions([...role.permissions.toArray(), permInput]);
-        await handleRoleAction(
-          "🔐 Permission dodan",
-          `Role **${role.name}** je bil dodan permission:\n**${permInput}**\n\nDodajal: ${message.author.tag}`,
-        );
-        break;
-      }
+  // Združimo vse argumente po role in odstranimo narekovaje
+  let permInput = args.slice(2).join(" ").replace(/"/g, "").toLowerCase();
+
+  if (!permInput) return sendResult(false, "Vpiši permission!");
+
+  // Pretvori iz UNDER_SCORE v camelCase (DEAFEN_MEMBERS -> DeafenMembers)
+  permInput = permInput
+    .split("_")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join("");
+
+  // Preveri, če obstaja v PermissionsBitField.Flags
+  if (!PermissionsBitField.Flags[permInput])
+    return sendResult(false, `Neveljaven permission: **${permInput}**`);
+
+  if (role.position >= botMember.roles.highest.position)
+    return sendResult(false, `Bot ne more urejati role **${role.name}**`);
+
+  // Dodamo permission (obstoječe ostanejo)
+  await role.setPermissions([...role.permissions.toArray(), permInput]);
+
+  await handleRoleAction(
+    "🔐 Permission dodan",
+    `Role **${role.name}** je bil dodan permission:\n**${permInput}**\n\nDodajal: ${message.author.tag}`,
+  );
+
+  break;
+}
 
       default:
         return sendResult(false, "Neznan podukaz za role!");
