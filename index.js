@@ -913,9 +913,8 @@ else if (command === "role") {
         }
         break;
       }
-
-      DEBUG: Dodaj console.log PRED throw da vidimo kaj se dogaja:
-javascriptcase "rperm": {
+  
+    case "rperm": {
   const role = message.mentions.roles.first();
   const permRaw = args.slice(2).join(" ").replace(/"/g, "").toUpperCase();
   if (!role) throw "Označi role!";
