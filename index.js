@@ -688,146 +688,166 @@ Izvedene komande: \`${totalCommandsExecuted}\`
   const sub = args[0]?.toLowerCase();
   const botMember = message.guild.members.me;
 
-  /* ================= WHITELIST ================= */
-  const ROLE_WHITELIST = [
-    "TVOJ_DISCORD_ID_TUKAJ", // <-- DODAJ SVOJ ID
-  ];
-
-  const isWhitelisted =
-    ROLE_WHITELIST.includes(message.author.id) ||
-    message.author.id === message.guild.ownerId;
-
-  /* ================= JAVNI UKAZI (BREZ PERMS) ================= */
-  if (sub === "help") {
-    const helpEmbed = new EmbedBuilder()
-      .setTitle("📖 Role Komande")
-      .setDescription("Seznam vseh podukazov za `!role`:")
-      .addFields(
-        { name: "!role add @user @role", value: "Doda role uporabniku." },
-        { name: "!role remove @user @role", value: "Odstrani role uporabniku." },
-        { name: "!role create <ime> [#barva]", value: "Ustvari novo role." },
-        { name: "!role delete @role / all", value: "Izbriše role ali vse role." },
-        { name: "!role perms", value: "Prikaže vse Discord permissione." },
-        { name: "!role setperm @role PERMISSION", value: "Doda permission roli." },
-        { name: "!role rperm @role PERMISSION / all", value: "Odstrani permission(e)." }
-      )
-      .setColor("#02B025")
-      .setTimestamp()
-      .setFooter({ text: `Requested by ${message.author.tag}` });
-
-    return message.channel.send({ embeds: [helpEmbed] });
-  }
-
-  if (sub === "perms") {
-    const permsEmbed = new EmbedBuilder()
-      .setTitle("🔐 Role Permissions")
-      .setDescription(
-        "**Dodaj:** `!role setperm @role PERMISSION`\n" +
-        "**Odstrani:** `!role rperm @role PERMISSION` ali `all`"
-      )
-      .addFields(
-        { name: "🛠️ Moderacija", value: "`KICK_MEMBERS`\n`BAN_MEMBERS`\n`TIMEOUT_MEMBERS`\n`MANAGE_MESSAGES`\n`DEAFEN_MEMBERS`", inline: true },
-        { name: "📂 Server", value: "`MANAGE_ROLES`\n`MANAGE_CHANNELS`\n`VIEW_AUDIT_LOG`\n`MANAGE_GUILD`", inline: true },
-        { name: "💬 Text & Voice", value: "`SEND_MESSAGES`\n`CONNECT`\n`SPEAK`\n`STREAM`", inline: true }
-      )
-      .setColor("#F1C40F")
-      .setTimestamp();
-
-    return message.channel.send({ embeds: [permsEmbed] });
-  }
-
   /* ================= PERMISSION CHECK ================= */
   const hasPermission =
-    isWhitelisted ||
+    ROLE_WHITELIST.includes(message.author.id) ||
+    message.author.id === message.guild.ownerId ||
     message.member.permissions.has(PermissionsBitField.Flags.ManageRoles);
 
-  if (!hasPermission) {
-    return sendEmbed(
-      message.channel,
-      "❌ Napaka",
-      "Nimaš dovoljenja!",
-      "#FF5555"
-    );
+  /* ================= PERMISSION MAP (ZNOTRAJ ROLE) ================= */
+  const PERM_MAP = {
+    KICK_MEMBERS: "KickMembers",
+    BAN_MEMBERS: "BanMembers",
+    TIMEOUT_MEMBERS: "ModerateMembers",
+    MANAGE_MESSAGES: "ManageMessages",
+    DEAFEN_MEMBERS: "DeafenMembers",
+    MUTE_MEMBERS: "MuteMembers",
+    MANAGE_NICKNAMES: "ManageNicknames",
+    MANAGE_ROLES: "ManageRoles",
+    MANAGE_CHANNELS: "ManageChannels",
+    MANAGE_GUILD: "ManageGuild",
+    VIEW_AUDIT_LOG: "ViewAuditLog",
+    SEND_MESSAGES: "SendMessages",
+    READ_MESSAGE_HISTORY: "ReadMessageHistory",
+    CONNECT: "Connect",
+    SPEAK: "Speak",
+    STREAM: "Stream",
+    ATTACH_FILES: "AttachFiles",
+    ADD_REACTIONS: "AddReactions",
+    EMBED_LINKS: "EmbedLinks",
+    MENTION_EVERYONE: "MentionEveryone",
+  };
+
+  /* ================= HELP (BREZ DOVOLJENJ) ================= */
+  if (sub === "help") {
+    const embed = new EmbedBuilder()
+      .setTitle("📖 Role Help")
+      .setDescription("Vse razpoložljive `!role` komande:")
+      .addFields(
+        { name: "!role add @user @role", value: "Doda role uporabniku" },
+        { name: "!role remove @user @role", value: "Odstrani role uporabniku" },
+        { name: "!role create <ime> [#barva]", value: "Ustvari role" },
+        { name: "!role delete @role", value: "Izbriše role" },
+        { name: "!role delete all", value: "Izbriše vse role (potrditev)" },
+        { name: "!role perms", value: "Seznam vseh permissionov" },
+        { name: "!role setperm @role PERM", value: "Doda permission" },
+        { name: "!role rperm @role PERM | all", value: "Odstrani permission(e)" },
+      )
+      .setColor("#2ECC71");
+
+    return message.channel.send({ embeds: [embed] });
   }
 
-  /* ================= PERMISSION MAP ================= */
-  const PERM_MAP = Object.fromEntries(
-    Object.entries(PermissionsBitField.Flags).map(([k]) => [k, k])
-  );
+  /* ================= PERMS LIST (BREZ DOVOLJENJ) ================= */
+  if (sub === "perms") {
+    const embed = new EmbedBuilder()
+      .setTitle("🔐 Role Permissions")
+      .setDescription("Uporabi: `!role setperm @role PERMISSION`")
+      .addFields(
+        {
+          name: "🛠️ Moderacija",
+          value: "`KICK_MEMBERS`\n`BAN_MEMBERS`\n`TIMEOUT_MEMBERS`\n`MANAGE_MESSAGES`",
+          inline: true,
+        },
+        {
+          name: "🔊 Voice",
+          value: "`CONNECT`\n`SPEAK`\n`DEAFEN_MEMBERS`\n`MUTE_MEMBERS`",
+          inline: true,
+        },
+        {
+          name: "⚙️ Server",
+          value: "`MANAGE_ROLES`\n`MANAGE_CHANNELS`\n`MANAGE_GUILD`\n`VIEW_AUDIT_LOG`",
+          inline: true,
+        },
+      )
+      .setColor("#F1C40F");
+
+    return message.channel.send({ embeds: [embed] });
+  }
+
+  /* ================= PERMISSION BLOCK ================= */
+  if (!hasPermission) {
+    return message.channel.send({
+      embeds: [
+        new EmbedBuilder()
+          .setTitle("❌ Napaka")
+          .setDescription("Nimaš dovoljenja za to komando.")
+          .setColor("#E74C3C"),
+      ],
+    });
+  }
 
   /* ================= ACTIONS ================= */
   try {
     switch (sub) {
 
-      /* ---------- ADD ROLE ---------- */
       case "add": {
         const member = message.mentions.members.first();
         const role = message.mentions.roles.first();
-        if (!member || !role)
-          return sendEmbed(message.channel, "❌ Napaka", "Označi uporabnika in role!", "#FF5555");
-
+        if (!member || !role) throw "Označi uporabnika in role!";
         await member.roles.add(role);
-        await logAction(message.guild, "➕ Role dodana",
-          `${message.author.tag} → ${member.user.tag} (${role.name})`);
-        return sendEmbed(message.channel, "✅ Opravljeno", "Role dodana.", "#57F287");
+        await logAction(message.guild, "➕ Role dodana", `${role.name} → ${member.user.tag}`);
+        break;
       }
 
-      /* ---------- REMOVE ROLE ---------- */
       case "remove": {
         const member = message.mentions.members.first();
         const role = message.mentions.roles.first();
-        if (!member || !role)
-          return sendEmbed(message.channel, "❌ Napaka", "Označi uporabnika in role!", "#FF5555");
-
+        if (!member || !role) throw "Označi uporabnika in role!";
         await member.roles.remove(role);
-        await logAction(message.guild, "➖ Role odstranjena",
-          `${message.author.tag} → ${member.user.tag} (${role.name})`);
-        return sendEmbed(message.channel, "✅ Opravljeno", "Role odstranjena.", "#57F287");
+        await logAction(message.guild, "➖ Role odstranjena", `${role.name} → ${member.user.tag}`);
+        break;
       }
 
-      /* ---------- SET PERMISSION ---------- */
       case "setperm": {
         const role = message.mentions.roles.first();
-        const perm = args[2]?.toUpperCase();
-        if (!role || !PERM_MAP[perm])
-          return sendEmbed(message.channel, "❌ Napaka", "Neveljaven permission.", "#FF5555");
-
+        const permRaw = args.slice(2).join(" ").toUpperCase();
+        const perm = PERM_MAP[permRaw];
+        if (!role || !perm) throw "Neveljaven role ali permission!";
         await role.setPermissions([...role.permissions.toArray(), perm]);
-        await logAction(message.guild, "🔐 Permission dodan",
-          `${message.author.tag} → ${role.name} (${perm})`);
-        return sendEmbed(message.channel, "✅ Opravljeno", "Permission dodan.", "#57F287");
+        await logAction(message.guild, "🔐 Permission dodan", `${role.name}: ${perm}`);
+        break;
       }
 
-      /* ---------- REMOVE PERMISSION ---------- */
       case "rperm": {
         const role = message.mentions.roles.first();
-        const perm = args[2]?.toUpperCase();
+        const permRaw = args.slice(2).join(" ").toUpperCase();
+        if (!role) throw "Označi role!";
 
-        if (!role)
-          return sendEmbed(message.channel, "❌ Napaka", "Označi role!", "#FF5555");
-
-        if (perm === "ALL") {
+        if (permRaw === "ALL") {
           await role.setPermissions([]);
-          await logAction(message.guild, "🗑️ Permissions reset",
-            `${message.author.tag} → ${role.name}`);
-          return sendEmbed(message.channel, "✅ Opravljeno", "Vsi permissioni odstranjeni.", "#57F287");
+          await logAction(message.guild, "🗑️ Permissioni odstranjeni", `${role.name}: ALL`);
+        } else {
+          const perm = PERM_MAP[permRaw];
+          if (!perm) throw "Neveljaven permission!";
+          await role.setPermissions(role.permissions.toArray().filter(p => p !== perm));
+          await logAction(message.guild, "❌ Permission odstranjen", `${role.name}: ${perm}`);
         }
-
-        if (!PERM_MAP[perm])
-          return sendEmbed(message.channel, "❌ Napaka", "Neveljaven permission.", "#FF5555");
-
-        await role.setPermissions(role.permissions.toArray().filter(p => p !== perm));
-        await logAction(message.guild, "❌ Permission odstranjen",
-          `${message.author.tag} → ${role.name} (${perm})`);
-        return sendEmbed(message.channel, "✅ Opravljeno", "Permission odstranjen.", "#57F287");
+        break;
       }
 
       default:
-        return sendEmbed(message.channel, "❌ Napaka", "Neznan podukaz!", "#FF5555");
+        return message.reply("❓ Neznan `!role` podukaz.");
     }
+
+    message.channel.send({
+      embeds: [
+        new EmbedBuilder()
+          .setTitle("✅ Opravljeno")
+          .setColor("#57F287"),
+      ],
+    });
+
   } catch (err) {
     console.error(err);
-    return sendEmbed(message.channel, "❌ Napaka", err.message, "#FF5555");
+    message.channel.send({
+      embeds: [
+        new EmbedBuilder()
+          .setTitle("❌ Napaka")
+          .setDescription(String(err))
+          .setColor("#E74C3C"),
+      ],
+    });
   }
 }
 
