@@ -299,34 +299,28 @@ Izvedene komande: \`${totalCommandsExecuted}\`
           "• `!kocka` — met kocke (1–6)\n" +
           "• `!zasmej` — zabavni roast\n" +
           "• `!hack` — lažni hack (šala)",
-        inline: false,
       },
       {
         name: "🔹 Moderacija",
         value:
           "• `!warn help` — opozorila uporabnikom\n" +
           "• `!rename help` — upravljanje nickname-ov",
-        inline: false,
       },
       {
         name: "🔹 Role & Dovoljenja",
-        value:
-          "• `!role help` — upravljanje rol",
-        inline: false,
+        value: "• `!role help` — upravljanje rol",
       },
       {
         name: "🔹 Kanali & Voice",
         value:
           "• `!channel help` — upravljanje kanalov\n" +
           "• `!voice help` — voice komande",
-        inline: false,
       },
       {
         name: "🔹 Administracija",
         value:
           "• `!admin` — admin ukazi\n" +
           "• `!log set` — nastavi log kanal",
-        inline: false,
       }
     )
     .setColor("#5865F2")
@@ -335,33 +329,6 @@ Izvedene komande: \`${totalCommandsExecuted}\`
 
   return message.channel.send({ embeds: [embed] });
 }
-
-    let description = commands
-      .map((cmd) => `**!${cmd.name}** - ${cmd.description}`)
-      .join("\n");
-
-    try {
-      await message.author.send({
-        embeds: [
-          new EmbedBuilder()
-            .setTitle("Seznam komand")
-            .setDescription(description)
-            .setColor("#00FF99")
-            .setTimestamp(),
-        ],
-      });
-      if (message.channel.type !== "DM")
-        message.reply("Poslal sem ti DM z vsemi komandami! 📩");
-    } catch {
-      sendEmbed(
-        message.channel,
-        "Napaka",
-        "Ne morem ti poslati DM. Preveri svoje nastavitve zasebnosti!",
-        "#FF5555",
-      );
-    }
-    return;
-  }
 
   if (command === "hack" && args[0] === "stop") {
   if (activeHacks.size === 0) {
